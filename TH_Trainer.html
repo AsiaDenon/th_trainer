@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thai Trainer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f0; --bg2: #fff; --border: #e8e8e8; --border2: #ddd;
+    --text: #1a1a1a; --text2: #555; --text3: #888; --text4: #aaa;
+    --badge-bg: #f0f0f0; --badge-text: #666; --input-bg: #fff;
+    --hover: #f5f5f5; --hover2: #f0f0f0; --code-bg: #e8e8e8;
+    --instr-bg: #f8f8f8; --progress-bg: #eee; --primary: #1a1a1a; --primary-text: #fff;
+  }
+  body.dark {
+    --bg: #0f0f0f; --bg2: #1c1c1e; --border: #2c2c2e; --border2: #3a3a3c;
+    --text: #f0f0f0; --text2: #aaa; --text3: #777; --text4: #555;
+    --badge-bg: #2c2c2e; --badge-text: #aaa; --input-bg: #1c1c1e;
+    --hover: #2c2c2e; --hover2: #2c2c2e; --code-bg: #2c2c2e;
+    --instr-bg: #1c1c1e; --progress-bg: #2c2c2e; --primary: #f0f0f0; --primary-text: #0f0f0f;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+  .app { max-width: 600px; margin: 0 auto; padding: 16px; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  h1 { font-size: 20px; font-weight: 500; }
+  .subtitle { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+  .dark-toggle { background: none; border: 1px solid var(--border2); border-radius: 8px; padding: 6px 12px; font-size: 16px; cursor: pointer; color: var(--text); transition: all 0.15s; }
+  .dark-toggle:hover { background: var(--hover); }
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 7px 16px; font-size: 13px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border2); color: var(--text2); background: var(--bg2); transition: all 0.15s; }
+  .tab.active { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+  .tab:hover:not(.active) { background: var(--hover2); }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .btn { background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; padding: 9px 18px; font-size: 14px; cursor: pointer; color: var(--text); transition: all 0.15s; }
+  .btn:hover { background: var(--hover); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-success { background: #1a3a1a; border-color: #2d5a2d; color: #6fcf6f; }
+  .btn-danger { background: #3a1a1a; border-color: #5a2d2d; color: #cf6f6f; }
+  body:not(.dark) .btn-success { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+  body:not(.dark) .btn-danger { background: #fdecea; border-color: #ef9a9a; color: #c62828; }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 6px; background: var(--badge-bg); color: var(--badge-text); display: inline-block; }
+  .badge-green { background: #1a3a1a; color: #6fcf6f; }
+  .badge-red { background: #3a1a1a; color: #cf6f6f; }
+  body:not(.dark) .badge-green { background: #e8f5e9; color: #2e7d32; }
+  body:not(.dark) .badge-red { background: #fdecea; color: #c62828; }
+  input[type=text], select { width: 100%; font-size: 14px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border2); background: var(--input-bg); color: var(--text); outline: none; }
+  input[type=text]:focus, select:focus { border-color: var(--text3); }
+  label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 4px; margin-top: 10px; }
+  #mainCard { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; cursor: pointer; user-select: none; transition: background 0.3s; }
+  #mainCard:hover { background: var(--hover); }
+  #cardFront { font-size: 40px; font-weight: 500; margin-bottom: 8px; line-height: 1.2; }
+  #cardPronun { font-size: 15px; color: var(--text3); margin-bottom: 6px; }
+  #cardBack { font-size: 20px; color: var(--text2); margin-top: 12px; }
+  #cardHint { font-size: 12px; color: var(--text4); margin-top: 16px; }
+  #cardLang { font-size: 11px; color: var(--text4); margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .flash-green { background: #1a3a1a !important; }
+  .flash-red { background: #3a1a1a !important; }
+  body:not(.dark) .flash-green { background: #e8f5e9 !important; }
+  body:not(.dark) .flash-red { background: #fdecea !important; }
+  .stats-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .answer-row { display: flex; gap: 12px; justify-content: center; margin-top: 16px; }
+  .vocab-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
+  .vocab-thai { font-size: 20px; font-weight: 500; min-width: 100px; }
+  .vocab-pronun { font-size: 12px; color: var(--text3); min-width: 110px; }
+  .vocab-meaning { font-size: 13px; flex: 1; }
+  .btn-icon { padding: 5px 8px; font-size: 16px; }
+  .import-box { border: 2px dashed var(--border2); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+  .import-box:hover { border-color: var(--text3); }
+  .import-box.dragover { border-color: var(--text); background: var(--hover); }
+  .import-instructions { background: var(--instr-bg); border-radius: 8px; padding: 14px; font-size: 13px; color: var(--text2); line-height: 1.7; margin-top: 14px; border: 1px solid var(--border); }
+  .import-instructions code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+  #doneMsg { text-align: center; padding: 2rem 0; }
+  .progress-bar { height: 4px; background: var(--progress-bg); border-radius: 2px; margin-bottom: 14px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; }
+  .storage-info { font-size: 12px; color: var(--text4); margin-top: 10px; text-align: center; }
+  .search-box { margin-bottom: 12px; }
+  @media (max-width: 480px) {
+    .app { padding: 12px; }
+    #cardFront { font-size: 32px; }
+    .vocab-pronun { display: none; }
+    .btn { padding: 8px 14px; font-size: 13px; }
+  }
+</style>
+</head>
+<body class="dark">
+<div class="app">
+  <div class="header">
+    <h1>🇹🇭 Thai Trainer</h1>
+    <button class="dark-toggle" onclick="toggleDark()" id="darkBtn">☀️</button>
+  </div>
+  <p class="subtitle">Dein persönlicher Vokabel-Trainer</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('learn',this)">Lernen</button>
+    <button class="tab" onclick="setTab('list',this)">Vokabeln</button>
+    <button class="tab" onclick="setTab('import',this)">CSV Import</button>
+    <button class="tab" onclick="setTab('add',this)">Hinzufügen</button>
+  </div>
+
+  <!-- LEARN TAB -->
+  <div id="tab-learn">
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+      <select id="modeSelect" style="width:auto; flex:1; min-width:160px;" onchange="setMode(this.value)">
+        <option value="th-de">Thai → Deutsch</option>
+        <option value="de-th">Deutsch → Thai</option>
+        <option value="both">Gemischt</option>
+      </select>
+      <select id="voiceSelect" style="width:auto; flex:1; min-width:160px;" onchange="saveVoice(this.value)" title="Stimme auswählen">
+        <option value="">🔊 Stimme lädt...</option>
+      </select>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="stats-row">
+      <span class="badge" id="statTotal">0 Karten</span>
+      <span class="badge badge-green" id="statKnown">✓ 0</span>
+      <span class="badge badge-red" id="statUnknown">✗ 0</span>
+      <span class="badge" id="statLeft">verbleibend: 0</span>
+    </div>
+    <div class="card" id="mainCard" onclick="flipCard()">
+      <div id="cardLang"></div>
+      <div id="cardFront"></div>
+      <div id="cardPronun"></div>
+      <div id="cardBack" style="display:none;"></div>
+      <div id="cardHint">Tippen zum Aufdecken</div>
+    </div>
+    <div style="display:flex; justify-content:center; margin:12px 0; gap:10px;">
+      <button class="btn" onclick="speak()">🔊 Anhören</button>
+      <button class="btn" onclick="restartSession()">↺ Neu starten</button>
+    </div>
+    <div class="answer-row" id="answerRow" style="display:none;">
+      <button class="btn btn-danger" onclick="markCard(false)">✗ Nochmal</button>
+      <button class="btn btn-success" onclick="markCard(true)">✓ Gewusst</button>
+    </div>
+    <div id="doneMsg" style="display:none;">
+      <div style="font-size:32px; margin-bottom:8px;">🎉</div>
+      <div style="font-size:18px; font-weight:500; margin-bottom:6px;">Runde abgeschlossen!</div>
+      <div id="doneStats" style="font-size:14px; color:var(--text3); margin-bottom:16px;"></div>
+      <button class="btn btn-primary" onclick="restartSession()">Nochmal von vorne</button>
+      <button class="btn" style="margin-left:8px;" onclick="restartWrong()">Nur falsche wiederholen</button>
+    </div>
+  </div>
+
+  <!-- LIST TAB -->
+  <div id="tab-list" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+      <span class="badge" id="listCount"></span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="exportCSV()">⬇ CSV Export</button>
+        <button class="btn btn-danger" onclick="clearAll()" style="padding:9px 12px;">🗑 Alle löschen</button>
+      </div>
+    </div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Suchen..." oninput="renderList()">
+    </div>
+    <div id="vocabList"></div>
+  </div>
+
+  <!-- IMPORT TAB -->
+  <div id="tab-import" style="display:none;">
+    <div style="margin-bottom:12px; display:flex; gap:16px; flex-wrap:wrap;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2); margin-top:0; cursor:pointer;">
+        <input type="radio" name="importMode" value="replace" checked> Vorhandene ersetzen
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2); margin-top:0; cursor:pointer;">
+        <input type="radio" name="importMode" value="merge"> Zusammenführen (Duplikate überspringen)
+      </label>
+    </div>
+    <div class="import-box" id="dropZone" onclick="document.getElementById('csvFile').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+      <div style="font-size:28px; margin-bottom:8px;">📄</div>
+      <div style="font-weight:500; margin-bottom:4px;">CSV Datei hier ablegen</div>
+      <div style="font-size:13px; color:var(--text4);">oder klicken zum Auswählen</div>
+      <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="loadCSV(event)">
+    </div>
+    <div class="import-instructions">
+      <strong>Spaltenreihenfolge (fest):</strong><br>
+      <code>A = Thai &nbsp;|&nbsp; B = Deutsch lesen &nbsp;|&nbsp; C = Bedeutung</code><br><br>
+      Google Sheets: Datei → Herunterladen → <code>CSV (.csv)</code>
+    </div>
+
+    <div style="margin-top:16px; border: 1px solid var(--border2); border-radius:10px; padding:14px;">
+      <div style="font-size:13px; font-weight:500; margin-bottom:10px;">🔄 Google Sheets Sync</div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="syncFromSheets()" id="syncBtn">🔄 Jetzt synchronisieren</button>
+        <span id="syncStatus" style="font-size:12px; color:var(--text3);">Letzter Sync: noch nie</span>
+      </div>
+      <div style="font-size:12px; color:var(--text4); margin-top:8px;">Neue Vokabeln aus Google Sheets werden automatisch beim Start geladen (sofern Internet vorhanden). Sync-Modus folgt der Radio-Auswahl oben.</div>
+    </div>
+
+    <div id="importMsg" style="display:none; margin-top:14px; padding:12px; border-radius:8px; font-size:14px;"></div>
+    <p class="storage-info">💾 Vokabeln werden automatisch lokal gespeichert</p>
+  </div>
+
+  <!-- ADD TAB -->
+  <div id="tab-add" style="display:none;">
+    <div class="card">
+      <div style="font-weight:500; margin-bottom:4px;">Neue Vokabel</div>
+      <label>A – Thai</label>
+      <input type="text" id="addThai" placeholder="z.B. สวัสดี" />
+      <label>B – Deutsch lesen (Aussprache)</label>
+      <input type="text" id="addPronun" placeholder="z.B. Sawatdii" />
+      <label>C – Bedeutung</label>
+      <input type="text" id="addMeaning" placeholder="z.B. Hallo" />
+      <div style="margin-top:14px; display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-primary" onclick="addVocab()">Hinzufügen</button>
+        <span id="addMsg" style="display:none; font-size:13px; color:#6fcf6f;">✓ Gespeichert!</span>
+      </div>
+    </div>
+    <p class="storage-info">💾 Vokabeln werden automatisch lokal gespeichert</p>
+  </div>
+</div>
+
+<script>
+const DEFAULT_VOCAB = [{"thai": "ครับ", "pronun": "kráp", "meaning": "Höflichkeitspartikel (Männer ♂ )"}, {"thai": "ค่ะ / คะ", "pronun": "kâ / ká", "meaning": "Höflichkeitspartikel (Frauen ♀ )"}, {"thai": "ใช่", "pronun": "tschái", "meaning": "Ja / richtig"}, {"thai": "ไม่", "pronun": "mâi", "meaning": "Nein / nicht"}, {"thai": "ขอบคุณ", "pronun": "kàop kun", "meaning": "Danke"}, {"thai": "สวัสดี", "pronun": "sà-wàt-dii", "meaning": "Hallo / Auf Wiedersehen"}, {"thai": "สบายดีไหม", "pronun": "sa-bai dii mai?", "meaning": "Wie geht es dir?"}, {"thai": "เป็นไงบ้าง", "pronun": "pen ngai baang?", "meaning": "Wie geht's? / Wie läuft's?"}, {"thai": "สบายดี ขอบคุณ", "pronun": "sa-bai dii, khop khun", "meaning": "Mir geht es gut, danke"}, {"thai": "ไม่ค่อยสบาย", "pronun": "mai khoi sa-bai", "meaning": "Mir geht es nicht so gut"}, {"thai": "ไม่เป็นไร", "pronun": "mâi pen rai", "meaning": "Kein Problem / macht nichts"}, {"thai": "อยู่", "pronun": "jùu", "meaning": "sein / sich befinden"}, {"thai": "ไป", "pronun": "bai", "meaning": "gehen"}, {"thai": "มา", "pronun": "maa", "meaning": "kommen"}, {"thai": "กิน", "pronun": "gin", "meaning": "essen"}, {"thai": "อาหาร", "pronun": "aa-hǎan", "meaning": "Nahrung, Essen"}, {"thai": "ดื่ม", "pronun": "düm", "meaning": "trinken"}, {"thai": "นอน", "pronun": "noon", "meaning": "schlafen"}, {"thai": "อยาก", "pronun": "jàak", "meaning": "wollen / möchten"}, {"thai": "ได้", "pronun": "dâai", "meaning": "können / bekommen / OK"}, {"thai": "เอา", "pronun": "ao", "meaning": "nehmen / wollen (umg.)"}, {"thai": "บ้าน", "pronun": "bâan", "meaning": "Haus / Zuhause"}, {"thai": "คน", "pronun": "kon", "meaning": "Person / Mensch"}, {"thai": "วัน", "pronun": "wan", "meaning": "Tag"}, {"thai": "เวลา", "pronun": "wee-laa", "meaning": "Zeit / Uhrzeit"}, {"thai": "ที่ไหน", "pronun": "tîi nǎi", "meaning": "Wo?"}, {"thai": "อะไร", "pronun": "à-rai", "meaning": "Was?"}, {"thai": "ทำไม", "pronun": "tam-mai", "meaning": "Warum?"}, {"thai": "เมื่อไร", "pronun": "müa-rai", "meaning": "Wann?"}, {"thai": "เท่าไร", "pronun": "tâo-rai", "meaning": "Wie viel?"}, {"thai": "มี", "pronun": "mii", "meaning": "haben / es gibt"}, {"thai": "ไม่มี", "pronun": "mâi mii", "meaning": "nicht haben / gibt es nicht"}, {"thai": "ดี", "pronun": "dii", "meaning": "gut"}, {"thai": "ไม่ดี", "pronun": "mâi dii", "meaning": "nicht gut / schlecht"}, {"thai": "อร่อย", "pronun": "à-roi", "meaning": "lecker"}, {"thai": "แพง", "pronun": "peng", "meaning": "teuer"}, {"thai": "ถูก", "pronun": "tùuk", "meaning": "billig / richtig"}, {"thai": "เร็ว", "pronun": "reo", "meaning": "schnell"}, {"thai": "ช้า", "pronun": "tschaa", "meaning": "langsam"}, {"thai": "ใหญ่", "pronun": "jài", "meaning": "groß"}, {"thai": "เล็ก", "pronun": "lek", "meaning": "klein"}, {"thai": "ร้อน", "pronun": "roon", "meaning": "heiß"}, {"thai": "เย็น", "pronun": "jen", "meaning": "kalt / kühl / Abend"}, {"thai": "น้ำ", "pronun": "nam", "meaning": "Wasser"}, {"thai": "ข้าว", "pronun": "kâao", "meaning": "Reis / Essen allgemein"}, {"thai": "เงิน", "pronun": "ngern", "meaning": "Geld"}, {"thai": "รถ", "pronun": "rot", "meaning": "Fahrzeug / Auto"}, {"thai": "ถนน", "pronun": "tà-non", "meaning": "Straße"}, {"thai": "ร้าน", "pronun": "raan", "meaning": "Laden / Restaurant"}, {"thai": "โทรศัพท์", "pronun": "too-rá-sàp", "meaning": "Telefon"}, {"thai": "เพื่อน", "pronun": "püan", "meaning": "Freund"}, {"thai": "ครอบครัว", "pronun": "kràop-krua", "meaning": "Familie"}, {"thai": "รู้", "pronun": "ruu", "meaning": "wissen / kennen"}, {"thai": "คิด", "pronun": "kit", "meaning": "denken"}, {"thai": "พูด", "pronun": "püut", "meaning": "sprechen"}, {"thai": "เข้าใจ", "pronun": "khao dschai", "meaning": "verstehen"}, {"thai": "ไม่เข้าใจ", "pronun": "mâi khâo dschai", "meaning": "Ich verstehe nicht"}, {"thai": "ชอบ", "pronun": "tschôp", "meaning": "mögen, gern haben"}, {"thai": "รัก", "pronun": "rák", "meaning": "Liebe / lieben"}, {"thai": "วันนี้", "pronun": "wann nii", "meaning": "heute"}, {"thai": "พรุ่งนี้", "pronun": "prung-níi", "meaning": "morgen"}, {"thai": "เมื่อวาน", "pronun": "müa-waan", "meaning": "gestern"}, {"thai": "ตอนนี้", "pronun": "ton nii", "meaning": "jetzt"}, {"thai": "หิว", "pronun": "hiu", "meaning": "hungrig"}, {"thai": "บ้าน", "pronun": "Ban", "meaning": "Dorf / Haus"}, {"thai": "อ่าว", "pronun": "Ao", "meaning": "Meeresbucht"}, {"thai": "นาง", "pronun": "Nang", "meaning": "Prinzessin / Lady"}, {"thai": "ปกติ", "pronun": "bok-dti", "meaning": "normal, gewöhnlich, üblicherweise"}, {"thai": "ปกติไหม?", "pronun": "bpòk-dtì mái?", "meaning": "Ist das normal?"}, {"thai": "ขี้เกียจ", "pronun": "kii giat", "meaning": "Ich habe keine Lust, Motivation / Ich bin zu faul"}, {"thai": "งง", "pronun": "ngong", "meaning": "verwirrt, durcheinander, nicht verstehen"}, {"thai": "งงไหม?", "pronun": "ngong mái?", "meaning": "Bist du verwirrt? / Verstehst du das nicht?"}, {"thai": "ฉันงง", "pronun": "chǎn/phom ngong", "meaning": "Ich bin verwirrt"}, {"thai": "โง่", "pronun": "ngoh", "meaning": "dumm, doof"}, {"thai": "อย่า", "pronun": "Yàa", "meaning": "nicht / tu nicht"}, {"thai": "อย่าโง่", "pronun": "Yàa ngô", "meaning": "Sei nicht dumm / Stell dich nicht dumm an"}, {"thai": "หุบปาก", "pronun": "Hupp Paak", "meaning": "mach den Mund zu (direkt und unhöflich)"}, {"thai": "เงียบหน่อย", "pronun": "ngîap nòi", "meaning": "Sei bitte etwas leiser"}, {"thai": "กรุณาเงียบหน่อย", "pronun": "garunaa ngîap nòi", "meaning": "Bitte seien Sie etwas leiser"}, {"thai": "เงียบ ๆ", "pronun": "ngîap ngîap", "meaning": "Still / Sei ruhig"}, {"thai": "หนื่อย", "pronun": "nüai", "meaning": "müde/erschöpft"}, {"thai": "ผมเหนื่อย", "pronun": "phom nüai", "meaning": "ich bin müde"}, {"thai": "เหนื่อยไหม?", "pronun": "nüai mai?", "meaning": "Bist du müde? / Ist das anstrengend?"}, {"thai": "ปวด", "pronun": "puat", "meaning": "Schmerzen haben"}, {"thai": "ฟัน", "pronun": "fan", "meaning": "Zahn"}, {"thai": "ผมปวดฟัน", "pronun": "phom ♂ puat fan", "meaning": "Ich habe Zahnschmerzen ♂"}, {"thai": "ฉันปวดฟัน", "pronun": "chan ♀ puat fan", "meaning": "Ich habe Zahnschmerzen ♀"}, {"thai": "คุณปวดฟันไหม?", "pronun": "khun puat fan mai?", "meaning": "Hast du Zahnschmerzen?“"}, {"thai": "ความรัก", "pronun": "Kwaam-rák", "meaning": "Liebe"}, {"thai": "คือ", "pronun": "küü", "meaning": "ist / bedeutet"}, {"thai": "การห่วงใย", "pronun": "gaan-hùang-yai", "meaning": "Fürsorge / sich sorgen / um jemanden kümmern"}, {"thai": "ความรักคือการห่วงใย", "pronun": "Kwaam-rák küü gaan–huang-jai", "meaning": "Liebe ist Fürsorge / Liebe bedeutet, sich um jemanden zu sorgen"}];
+const STORAGE_KEY = "thai_trainer_vocab";
+const DARK_KEY = "thai_trainer_dark";
+
+let vocab = loadVocab();
+let mode = "th-de";
+let queue = [], current = null, flipped = false;
+let known = 0, unknown = 0, wrongCards = [];
+let totalInSession = 0;
+
+function loadVocab() {
+  try {
+    let stored = localStorage.getItem(STORAGE_KEY);
+    if(stored) { let p = JSON.parse(stored); if(Array.isArray(p) && p.length > 0) return p; }
+  } catch(e) {}
+  return [...DEFAULT_VOCAB];
+}
+
+function saveVocab() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(vocab)); } catch(e) {}
+}
+
+function initDark() {
+  let stored = localStorage.getItem(DARK_KEY);
+  // Default is dark (body already has class "dark")
+  // Only switch to light if user explicitly saved "0"
+  if(stored === "0") {
+    document.body.classList.remove("dark");
+    document.getElementById("darkBtn").textContent = "🌙";
+  }
+}
+
+function toggleDark() {
+  let isDark = document.body.classList.toggle("dark");
+  document.getElementById("darkBtn").textContent = isDark ? "☀️" : "🌙";
+  try { localStorage.setItem(DARK_KEY, isDark ? "1" : "0"); } catch(e) {}
+}
+
+function setMode(v) { mode = v; restartSession(); }
+
+function setTab(t, el) {
+  ["learn","list","import","add"].forEach(tab => {
+    document.getElementById("tab-"+tab).style.display = tab===t ? "block" : "none";
+  });
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  if(t==="list") renderList();
+}
+
+function shuffle(arr) {
+  let a = [...arr];
+  for(let i=a.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function restartSession(cards) {
+  queue = shuffle(cards || vocab);
+  totalInSession = queue.length;
+  known = 0; unknown = 0; wrongCards = [];
+  document.getElementById("doneMsg").style.display = "none";
+  document.getElementById("mainCard").style.display = "flex";
+  document.getElementById("answerRow").style.display = "none";
+  nextCard();
+}
+
+function restartWrong() {
+  if(wrongCards.length === 0) { restartSession(); return; }
+  restartSession(wrongCards);
+}
+
+function nextCard() {
+  flipped = false;
+  if(queue.length === 0) { showDone(); return; }
+  current = queue.shift();
+  let m = mode==="both" ? (Math.random()<0.5?"th-de":"de-th") : mode;
+  current._mode = m;
+  document.getElementById("cardBack").style.display = "none";
+  document.getElementById("answerRow").style.display = "none";
+  document.getElementById("cardHint").style.display = "block";
+  document.getElementById("mainCard").style.background = "";
+  if(m === "th-de") {
+    document.getElementById("cardLang").textContent = "Thai → Deutsch";
+    document.getElementById("cardFront").textContent = current.thai;
+    document.getElementById("cardPronun").textContent = current.pronun;
+    document.getElementById("cardBack").textContent = current.meaning;
+  } else {
+    document.getElementById("cardLang").textContent = "Deutsch → Thai";
+    document.getElementById("cardFront").textContent = current.meaning;
+    document.getElementById("cardPronun").textContent = "";
+    document.getElementById("cardBack").textContent = current.thai + (current.pronun ? " (" + current.pronun + ")" : "");
+  }
+  updateStats();
+}
+
+function flipCard() {
+  if(flipped) return;
+  flipped = true;
+  document.getElementById("cardBack").style.display = "block";
+  document.getElementById("cardHint").style.display = "none";
+  document.getElementById("answerRow").style.display = "flex";
+}
+
+function markCard(wasKnown) {
+  let card = document.getElementById("mainCard");
+  if(wasKnown) { known++; card.classList.add("flash-green"); }
+  else { unknown++; wrongCards.push(current); card.classList.add("flash-red"); }
+  setTimeout(() => { card.classList.remove("flash-green","flash-red"); nextCard(); }, 350);
+}
+
+const VOICE_KEY = "thai_trainer_voice";
+let availableVoices = [];
+
+function loadVoices() {
+  let voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith("th"));
+  if(voices.length === 0) return;
+  availableVoices = voices;
+  let sel = document.getElementById("voiceSelect");
+  let saved = localStorage.getItem(VOICE_KEY) || "";
+  sel.innerHTML = voices.map((v, i) =>
+    `<option value="${v.name}" ${v.name === saved ? "selected" : ""}>${v.name}</option>`
+  ).join("");
+  if(!saved && voices.length > 0) saveVoice(voices[0].name);
+}
+
+function saveVoice(name) {
+  try { localStorage.setItem(VOICE_KEY, name); } catch(e) {}
+}
+
+function speak() {
+  if(!current) return;
+  let u = new SpeechSynthesisUtterance(current.thai);
+  u.lang = "th-TH";
+  let savedName = localStorage.getItem(VOICE_KEY);
+  if(savedName && availableVoices.length > 0) {
+    let voice = availableVoices.find(v => v.name === savedName);
+    if(voice) u.voice = voice;
+  }
+  window.speechSynthesis.speak(u);
+}
+
+window.speechSynthesis.onvoiceschanged = loadVoices;
+setTimeout(loadVoices, 500);
+
+function updateStats() {
+  let pct = totalInSession > 0 ? Math.round(((totalInSession - queue.length) / totalInSession) * 100) : 0;
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("statTotal").textContent = vocab.length + " Karten";
+  document.getElementById("statKnown").textContent = "✓ " + known;
+  document.getElementById("statUnknown").textContent = "✗ " + unknown;
+  document.getElementById("statLeft").textContent = "verbleibend: " + (queue.length + (current ? 1 : 0));
+}
+
+function showDone() {
+  document.getElementById("mainCard").style.display = "none";
+  document.getElementById("answerRow").style.display = "none";
+  document.getElementById("doneMsg").style.display = "block";
+  document.getElementById("doneStats").textContent =
+    "Gewusst: " + known + " von " + totalInSession + " — Nochmal: " + unknown;
+}
+
+function renderList() {
+  let search = (document.getElementById("searchInput")?.value || "").toLowerCase();
+  let filtered = vocab.filter(v =>
+    v.thai.toLowerCase().includes(search) ||
+    v.pronun.toLowerCase().includes(search) ||
+    v.meaning.toLowerCase().includes(search)
+  );
+  document.getElementById("listCount").textContent = filtered.length + " / " + vocab.length + " Vokabeln";
+  let html = "";
+  filtered.forEach((v, i) => {
+    let realIdx = vocab.indexOf(v);
+    html += `<div class="vocab-item">
+      <div class="vocab-thai">${v.thai}</div>
+      <div class="vocab-pronun">${v.pronun}</div>
+      <div class="vocab-meaning">${v.meaning}</div>
+      <button class="btn btn-icon" onclick="deleteVocab(${realIdx})" title="Löschen">🗑</button>
+    </div>`;
+  });
+  document.getElementById("vocabList").innerHTML = html || '<p style="color:var(--text4);font-size:14px;text-align:center;padding:20px;">Keine Vokabeln gefunden</p>';
+}
+
+function deleteVocab(i) {
+  if(confirm("Vokabel löschen?")) { vocab.splice(i, 1); saveVocab(); renderList(); }
+}
+
+function clearAll() {
+  if(confirm("Alle " + vocab.length + " Vokabeln löschen?")) { vocab = []; saveVocab(); renderList(); }
+}
+
+function addVocab() {
+  let thai = document.getElementById("addThai").value.trim();
+  let pronun = document.getElementById("addPronun").value.trim();
+  let meaning = document.getElementById("addMeaning").value.trim();
+  if(!thai || !meaning) { alert("Thai (A) und Bedeutung (C) sind Pflichtfelder."); return; }
+  vocab.push({ thai, pronun, meaning });
+  saveVocab();
+  document.getElementById("addThai").value = "";
+  document.getElementById("addPronun").value = "";
+  document.getElementById("addMeaning").value = "";
+  let msg = document.getElementById("addMsg");
+  msg.style.display = "block";
+  setTimeout(() => msg.style.display = "none", 2000);
+}
+
+function exportCSV() {
+  let csv = "Thai,Deutsch lesen,Bedeutung\n";
+  vocab.forEach(v => { csv += `"${v.thai}","${v.pronun}","${v.meaning}"\n`; });
+  let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Thai_Vokabeln.csv";
+  a.click();
+}
+
+function parseCSV(text) {
+  let lines = text.trim().split(/\r?\n/);
+  let results = [];
+  for(let i = 0; i < lines.length; i++) {
+    let cols = lines[i].split(",").map(c => c.replace(/^"|"$/g, "").trim());
+    if(cols.length >= 1 && cols[0]) {
+      results.push({ thai: cols[0] || "", pronun: cols[1] || "", meaning: cols[2] || "" });
+    }
+  }
+  return results;
+}
+
+function showImportMsg(text, success) {
+  let el = document.getElementById("importMsg");
+  el.textContent = text;
+  el.style.display = "block";
+  let dark = document.body.classList.contains("dark");
+  el.style.background = success ? (dark ? "#1a3a1a" : "#e8f5e9") : (dark ? "#3a1a1a" : "#fdecea");
+  el.style.color = success ? "#6fcf6f" : "#cf6f6f";
+  el.style.border = "1px solid " + (success ? "#2d5a2d" : "#5a2d2d");
+}
+
+function processCSV(text) {
+  let imported = parseCSV(text);
+  if(imported.length === 0) { showImportMsg("Keine gültigen Einträge gefunden.", false); return; }
+  let mergeMode = document.querySelector('input[name="importMode"]:checked').value;
+  if(mergeMode === "replace") {
+    vocab = imported; saveVocab();
+    showImportMsg("✓ " + imported.length + " Vokabeln importiert (Liste ersetzt).", true);
+  } else {
+    let existing = new Set(vocab.map(v => v.thai));
+    let added = 0;
+    imported.forEach(v => { if(!existing.has(v.thai)) { vocab.push(v); added++; } });
+    saveVocab();
+    showImportMsg("✓ " + added + " neue Vokabeln hinzugefügt (" + (imported.length - added) + " Duplikate übersprungen).", true);
+  }
+}
+
+function loadCSV(event) {
+  let file = event.target.files[0];
+  if(!file) return;
+  let reader = new FileReader();
+  reader.onload = e => processCSV(e.target.result);
+  reader.readAsText(file, "UTF-8");
+  event.target.value = ""; // Reset so same file can be selected again
+}
+
+function dragOver(e) { e.preventDefault(); document.getElementById("dropZone").classList.add("dragover"); }
+function dragLeave(e) { document.getElementById("dropZone").classList.remove("dragover"); }
+function dropFile(e) {
+  e.preventDefault();
+  document.getElementById("dropZone").classList.remove("dragover");
+  let file = e.dataTransfer.files[0];
+  if(!file || !file.name.endsWith(".csv")) { showImportMsg("Bitte eine .csv Datei verwenden.", false); return; }
+  let reader = new FileReader();
+  reader.onload = ev => processCSV(ev.target.result);
+  reader.readAsText(file, "UTF-8");
+}
+
+const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCJqwgJCguXJpBZvIvb-nFkJrqZ0V3-PGSuKNBkj5hgJvAsbcSe9cXiaQxTMZS8c4xO5_Ybyj6dsr8/pub?gid=830567012&single=true&output=csv";
+const SYNC_KEY = "thai_trainer_last_sync";
+
+function updateSyncStatus() {
+  let last = localStorage.getItem(SYNC_KEY);
+  let el = document.getElementById("syncStatus");
+  if(!el) return;
+  if(last) {
+    let d = new Date(parseInt(last));
+    el.textContent = "Letzter Sync: " + d.toLocaleDateString("de-DE") + " " + d.toLocaleTimeString("de-DE", {hour:"2-digit", minute:"2-digit"});
+  } else {
+    el.textContent = "Letzter Sync: noch nie";
+  }
+}
+
+async function syncFromSheets(silent) {
+  let btn = document.getElementById("syncBtn");
+  let statusEl = document.getElementById("syncStatus");
+  if(btn) { btn.disabled = true; btn.textContent = "⏳ Lädt..."; }
+  try {
+    let res = await fetch(SHEETS_CSV_URL);
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    let text = await res.text();
+    let imported = parseCSV(text);
+    if(imported.length === 0) throw new Error("Keine Daten");
+    let mergeMode = document.querySelector('input[name="importMode"]:checked')?.value || "merge";
+    let msg = "";
+    if(mergeMode === "replace") {
+      vocab = imported; saveVocab();
+      msg = "✓ " + imported.length + " Vokabeln geladen (Liste ersetzt).";
+    } else {
+      let existing = new Set(vocab.map(v => v.thai));
+      let added = 0;
+      imported.forEach(v => { if(!existing.has(v.thai)) { vocab.push(v); added++; } });
+      saveVocab();
+      msg = "✓ " + added + " neue Vokabeln hinzugefügt (" + (imported.length - added) + " bereits vorhanden).";
+    }
+    try { localStorage.setItem(SYNC_KEY, Date.now().toString()); } catch(e) {}
+    updateSyncStatus();
+    if(!silent) showImportMsg(msg, true);
+  } catch(err) {
+    if(!silent) showImportMsg("⚠ Sync fehlgeschlagen: " + err.message, false);
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = "🔄 Jetzt synchronisieren"; }
+  }
+}
+
+initDark();
+updateSyncStatus();
+syncFromSheets(true); // Auto-sync beim Start (silent = kein Popup)
+restartSession();
+</script>
+</body>
+</html>
