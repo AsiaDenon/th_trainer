@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thai Trainer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f0; --bg2: #fff; --border: #e8e8e8; --border2: #ddd;
+    --text: #1a1a1a; --text2: #555; --text3: #888; --text4: #aaa;
+    --badge-bg: #f0f0f0; --badge-text: #666; --input-bg: #fff;
+    --hover: #f5f5f5; --hover2: #f0f0f0; --code-bg: #e8e8e8;
+    --instr-bg: #f8f8f8; --progress-bg: #eee; --primary: #1a1a1a; --primary-text: #fff;
+  }
+  body.dark {
+    --bg: #0f0f0f; --bg2: #1c1c1e; --border: #2c2c2e; --border2: #3a3a3c;
+    --text: #f0f0f0; --text2: #aaa; --text3: #777; --text4: #555;
+    --badge-bg: #2c2c2e; --badge-text: #aaa; --input-bg: #1c1c1e;
+    --hover: #2c2c2e; --hover2: #2c2c2e; --code-bg: #2c2c2e;
+    --instr-bg: #1c1c1e; --progress-bg: #2c2c2e; --primary: #f0f0f0; --primary-text: #0f0f0f;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+  .app { max-width: 600px; margin: 0 auto; padding: 16px; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap:8px; }
+  .header-left { display:flex; align-items:center; gap:10px; }
+  h1 { font-size: 20px; font-weight: 500; }
+  .subtitle { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+  .header-btns { display:flex; align-items:center; gap:8px; position:relative; }
+  .dark-toggle, .flag-toggle { background: none; border: 1px solid var(--border2); border-radius: 8px; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; color: var(--text); transition: all 0.15s; padding: 0; }
+  .dark-toggle:hover, .flag-toggle:hover { background: var(--hover); }
+  .flag-picker { display:none; position:absolute; top:110%; right:0; background:var(--bg2); border:1px solid var(--border2); border-radius:10px; padding:6px; gap:6px; z-index:50; box-shadow:0 4px 14px rgba(0,0,0,0.15); }
+  .flag-picker.show { display:flex; }
+  .flag-picker button { background:none; border:1px solid transparent; border-radius:8px; padding:6px 10px; font-size:18px; cursor:pointer; color:var(--text); }
+  .flag-picker button:hover { background:var(--hover); border-color:var(--border2); }
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 7px 16px; font-size: 13px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border2); color: var(--text2); background: var(--bg2); transition: all 0.15s; }
+  .tab.active { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+  .tab:hover:not(.active) { background: var(--hover2); }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .btn { background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; padding: 9px 18px; font-size: 14px; cursor: pointer; color: var(--text); transition: all 0.15s; }
+  .btn:hover { background: var(--hover); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-success { background: #1a3a1a; border-color: #2d5a2d; color: #6fcf6f; }
+  .btn-danger { background: #3a1a1a; border-color: #5a2d2d; color: #cf6f6f; }
+  body:not(.dark) .btn-success { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+  body:not(.dark) .btn-danger { background: #fdecea; border-color: #ef9a9a; color: #c62828; }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 6px; background: var(--badge-bg); color: var(--badge-text); display: inline-block; }
+  .badge-green { background: #1a3a1a; color: #6fcf6f; }
+  .badge-red { background: #3a1a1a; color: #cf6f6f; }
+  body:not(.dark) .badge-green { background: #e8f5e9; color: #2e7d32; }
+  body:not(.dark) .badge-red { background: #fdecea; color: #c62828; }
+  input[type=text], select { width: 100%; font-size: 14px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border2); background: var(--input-bg); color: var(--text); outline: none; }
+  input[type=text]:focus, select:focus { border-color: var(--text3); }
+  label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 4px; margin-top: 10px; }
+  #mainCard { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; cursor: pointer; user-select: none; transition: background 0.3s; }
+  #mainCard:hover { background: var(--hover); }
+  #cardFront { font-size: 40px; font-weight: 500; margin-bottom: 8px; line-height: 1.2; }
+  #cardFront.size-small { font-size: 28px; }
+  #cardPronun { font-size: 15px; color: var(--text3); margin-bottom: 2px; }
+  #cardPronunBack { font-size: 15px; color: var(--text3); margin-top: 6px; margin-bottom: 2px; }
+  #cardIpaBack { font-size: 13px; color: var(--text4); font-style: italic; margin-bottom: 6px; }
+  #cardIpa { font-size: 13px; color: var(--text4); font-style: italic; margin-bottom: 6px; }
+  #cardBack { font-size: 20px; color: var(--text2); margin-top: 12px; }
+  #cardBack.size-large { font-size: 32px; font-weight: 500; color: var(--text); }
+  #cardEnglishBack { font-size: 14px; color: var(--text3); margin-top: 6px; margin-bottom: 2px; }
+  #cardHint { font-size: 12px; color: var(--text4); margin-top: 16px; }
+  #cardLang { font-size: 11px; color: var(--text4); margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .flash-green { background: #1a3a1a !important; }
+  .flash-red { background: #3a1a1a !important; }
+  body:not(.dark) .flash-green { background: #e8f5e9 !important; }
+  body:not(.dark) .flash-red { background: #fdecea !important; }
+  .stats-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items:center; }
+  .answer-row { display: flex; align-items: center; margin-top: 16px; }
+  .vocab-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
+  .vocab-thai { font-size: 20px; font-weight: 500; min-width: 100px; }
+  .vocab-pronun { font-size: 12px; color: var(--text3); min-width: 110px; }
+  .vocab-meaning { font-size: 13px; flex: 1; }
+  .btn-icon { padding: 5px 8px; font-size: 16px; }
+  .import-box { border: 2px dashed var(--border2); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+  .import-box:hover { border-color: var(--text3); }
+  .import-box.dragover { border-color: var(--text); background: var(--hover); }
+  .import-instructions { background: var(--instr-bg); border-radius: 8px; padding: 14px; font-size: 13px; color: var(--text2); line-height: 1.7; margin-top: 14px; border: 1px solid var(--border); }
+  .import-instructions code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+  #doneMsg { text-align: center; padding: 2rem 0; }
+  .progress-bar { height: 4px; background: var(--progress-bg); border-radius: 2px; margin-bottom: 14px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; }
+  .storage-info { font-size: 12px; color: var(--text4); margin-top: 10px; text-align: center; }
+  .search-box { margin-bottom: 12px; }
+  .dl-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+  .dl-box h3 { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+  .dl-box p { font-size: 12px; color: var(--text3); margin-bottom: 12px; line-height: 1.6; }
+  #androidPopup { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999; align-items:center; justify-content:center; padding:20px; }
+  #androidPopup.show { display:flex; }
+  #srPopup.show { display:flex !important; }
+  #resetLevelsPopup.show { display:flex !important; }
+  #androidPopupBox { background:var(--bg2); border-radius:14px; padding:24px; max-width:340px; width:100%; text-align:center; }
+  #androidPopupBox h2 { font-size:16px; font-weight:600; margin-bottom:10px; }
+  #androidPopupBox p { font-size:13px; color:var(--text2); margin-bottom:18px; line-height:1.6; }
+  .popup-btns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .total-stats { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+  @media (max-width: 480px) {
+    .app { padding: 12px; }
+    #cardFront { font-size: 32px; }
+    .vocab-pronun { display: none; }
+    .btn { padding: 8px 14px; font-size: 13px; }
+  }
+</style>
+</head>
+<body class="dark">
+
+<!-- Android Popup -->
+<div id="androidPopup">
+  <div id="androidPopupBox">
+    <h2 id="apTitle">📥 Offline-Version herunterladen</h2>
+    <p id="apText">Lade die aktuelle Version mit allen deinen Vokabeln als HTML und CSV herunter, um sie offline zu nutzen.</p>
+    <div class="popup-btns">
+      <button class="btn btn-primary" onclick="downloadPackage(); closeAndroidPopup();" id="apDownloadBtn">⬇ Jetzt herunterladen</button>
+      <button class="btn" onclick="try{localStorage.setItem('thai_trainer_last_download', Date.now().toString());}catch(e){} closeAndroidPopup()" id="apLaterBtn">Später</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <h1>🇹🇭 Thai Trainer</h1>
+    </div>
+    <div class="header-btns">
+      <div style="position:relative;">
+        <button class="flag-toggle" id="flagBtn" onclick="onFlagClick()">🇹🇭</button>
+        <div class="flag-picker" id="flagPicker">
+          <button onclick="setLang('th')" title="Thai UI">🇹🇭</button>
+          <button onclick="setLang('en')" title="English UI">🇬🇧</button>
+        </div>
+      </div>
+      <div style="position:relative;">
+        <button class="dark-toggle" id="colorBtn" onclick="onColorClick()" title="Farbschema wechseln">🖌️</button>
+        <div class="flag-picker" id="colorPicker" style="flex-direction:column; right:0; min-width:160px;"></div>
+        <input type="color" id="customColorInput" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;" onchange="onCustomColorPicked(this.value)" value="#888888">
+      </div>
+      <button class="dark-toggle" onclick="toggleDark()" id="darkBtn">☀️</button>
+    </div>
+  </div>
+  <p class="subtitle" id="subtitleText">Dein persönlicher Vokabel-Trainer</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('learn',this)" id="tabBtn-learn">Lernen</button>
+    <button class="tab" onclick="setTab('list',this)" id="tabBtn-list">Vokabeln</button>
+    <button class="tab" onclick="setTab('add',this)" id="tabBtn-add">Hinzufügen</button>
+    <button class="tab" onclick="setTab('import',this)" id="tabBtn-import">CSV Import</button>
+    <button class="tab" onclick="setTab('download',this)" id="tabBtn-download">Download</button>
+  </div>
+
+  <!-- LEARN TAB -->
+  <div id="tab-learn">
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+      <select id="modeSelect" style="width:auto; flex:1; min-width:160px;" onchange="setMode(this.value)">
+        <option value="th-de">Thai → Deutsch</option>
+        <option value="de-th">Deutsch → Thai</option>
+        <option value="both">Gemischt</option>
+        <option value="en-th">Englisch → Thai</option>
+        <option value="th-en">Thai → Englisch</option>
+      </select>
+      <select id="voiceSelect" style="width:auto; flex:1; min-width:160px;" onchange="saveVoice(this.value)" title="Stimme auswählen">
+        <option value="">🔊 Stimme lädt...</option>
+      </select>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="stats-row">
+      <span class="badge" id="statTotal">0 Karten</span>
+      <span class="badge badge-green" id="statKnown">✓ 0</span>
+      <span class="badge badge-red" id="statUnknown">✗ 0</span>
+      <span class="badge" id="statLeft">fällig: 0</span>
+      <span class="badge" id="statLevel" style="background:var(--badge-bg);color:var(--badge-text); cursor:pointer;" onclick="document.getElementById('srPopup').classList.add('show')" title="Spaced Repetition Info">⭐ Level: –</span>
+    </div>
+
+    <!-- SR Info Popup -->
+    <div id="srPopup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999; align-items:center; justify-content:center; padding:20px;">
+      <div style="background:var(--bg2); border-radius:14px; padding:24px; max-width:360px; width:100%;">
+        <h2 style="font-size:16px; font-weight:600; margin-bottom:12px;" id="srTitle">💡 Wie funktioniert Spaced Repetition?</h2>
+        <p style="font-size:13px; color:var(--text2); line-height:1.7; margin-bottom:10px;" id="srIntro">
+          Jede Vokabel hat ein <strong>Level (0–5)</strong>. Je höher das Level, desto seltener wird sie abgefragt:
+        </p>
+        <table style="width:100%; font-size:12px; border-collapse:collapse; margin-bottom:12px;">
+          <tr style="color:var(--text3);"><th style="text-align:left; padding:4px 0;" id="srColLevel">Level</th><th style="text-align:left;" id="srColRepeat">Wiederholung nach</th></tr>
+          <tr><td>🔴 <span id="srNew">Neu</span> (0)</td><td id="srNow">sofort</td></tr>
+          <tr><td>🟠 Lv.1</td><td id="sr1d">1 Tag</td></tr>
+          <tr><td>🟡 Lv.2</td><td id="sr3d">3 Tagen</td></tr>
+          <tr><td>🟢 Lv.3</td><td id="sr7d">7 Tagen</td></tr>
+          <tr><td>🔵 Lv.4</td><td id="sr14d">14 Tagen</td></tr>
+          <tr><td>⭐ Lv.5</td><td id="sr30d">30 Tagen</td></tr>
+        </table>
+        <p style="font-size:13px; color:var(--text2); line-height:1.7; margin-bottom:16px;" id="srExplain">
+          <strong>✓ Richtig</strong> → Level steigt, Karte kommt später wieder.<br>
+          <strong>✗ Falsch</strong> → Level sinkt, Karte kommt früher wieder.<br><br>
+          Mit <strong>„↺ Neustart"</strong> siehst du nur fällige Karten.<br>
+          Mit <strong>„📚 Alle Karten üben"</strong> kannst du alle Karten unabhängig vom System durchgehen.
+        </p>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-danger" style="flex:1;" onclick="document.getElementById('resetLevelsPopup').classList.add('show')" id="srResetBtn">Lv. zurücksetzen</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="document.getElementById('srPopup').classList.remove('show')" id="srOkBtn">Schließen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reset Levels Confirm Popup -->
+    <div id="resetLevelsPopup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+      <div style="background:var(--bg2); border-radius:14px; padding:24px; max-width:340px; width:100%; text-align:center;">
+        <p style="font-size:14px; color:var(--text2); line-height:1.6; margin-bottom:18px;" id="resetLevelsText">Sollen alle Level komplett zurückgesetzt werden?</p>
+        <div class="popup-btns">
+          <button class="btn btn-danger" onclick="confirmResetLevels()" id="resetLevelsYesBtn">Ja</button>
+          <button class="btn" onclick="document.getElementById('resetLevelsPopup').classList.remove('show')" id="resetLevelsNoBtn">Nein</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="mainCard" onclick="flipCard()">
+      <div id="cardLang"></div>
+      <div id="cardFront"></div>
+      <div id="cardPronun"></div>
+      <div id="cardIpa"></div>
+      <div id="cardBack" style="display:none;"></div>
+      <div id="cardEnglishBack" style="display:none;"></div>
+      <div id="cardPronunBack" style="display:none;"></div>
+      <div id="cardIpaBack" style="display:none;"></div>
+      <div id="cardHint">Tippen zum Aufdecken</div>
+    </div>
+    <div style="display:flex; justify-content:center; margin:12px 0; gap:10px; flex-wrap:wrap;">
+      <button class="btn" onclick="restartAll()" id="allBtn">📚 Alle Karten üben</button>
+      <button class="btn" onclick="restartSession()" id="restartBtn">↺ Neustart</button>
+      <button class="btn" onclick="speak()" id="listenBtn">🔊 Anhören</button>
+    </div>
+    <div class="answer-row" id="answerRow" style="display:none;">
+      <div style="flex:1; display:flex; justify-content:flex-start;">
+        <button class="btn" onclick="toggleEnglish()" id="enBtn" style="display:none;">EN</button>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <button class="btn btn-danger" onclick="markCard(false)" id="againBtn">✗ Nochmal</button>
+        <button class="btn btn-success" onclick="markCard(true)" id="knownBtn">✓ Gewusst</button>
+      </div>
+      <div style="flex:1;"></div>
+    </div>
+    <div id="doneMsg" style="display:none;">
+      <div style="font-size:32px; margin-bottom:8px;">🎉</div>
+      <div style="font-size:18px; font-weight:500; margin-bottom:6px;" id="doneTitle">Runde abgeschlossen!</div>
+      <div id="doneStats" style="font-size:14px; color:var(--text3); margin-bottom:16px;"></div>
+      <button class="btn btn-primary" onclick="restartSession()" id="doneRestartBtn">Nochmal von vorne</button>
+      <button class="btn" style="margin-left:8px;" onclick="restartWrong()" id="doneWrongBtn">Nur falsche wiederholen</button>
+    </div>
+    <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+      <div style="font-size:12px; color:var(--text3); margin-bottom:8px;" id="totalStatsLabel">Gesamtstatistik (alle Sessions)</div>
+      <div class="total-stats">
+        <span class="badge badge-green" id="totalKnown">✓ Gesamt: 0</span>
+        <span class="badge badge-red" id="totalUnknown">✗ Gesamt: 0</span>
+        <button class="btn" style="padding:3px 10px; font-size:12px;" onclick="resetTotalStats()" id="resetStatsBtn">Zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIST TAB -->
+  <div id="tab-list" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+      <span class="badge" id="listCount"></span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="exportCSV()" id="listExportBtn">⬇ CSV Export</button>
+        <button class="btn btn-danger" onclick="clearAll()" style="padding:9px 12px;" id="listClearBtn">🗑 Alle löschen</button>
+      </div>
+    </div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Suchen..." oninput="renderList()">
+    </div>
+    <div id="vocabList"></div>
+  </div>
+
+  <!-- ADD TAB -->
+  <div id="tab-add" style="display:none;">
+    <div class="card">
+      <div style="font-weight:500; margin-bottom:4px;" id="addTitle">Neue Vokabel</div>
+      <label id="addLabelThai">A – Thai</label>
+      <input type="text" id="addThai" placeholder="z.B. สวัสดี" />
+      <label id="addLabelPronun">B – Deutsch lesen (Aussprache)</label>
+      <input type="text" id="addPronun" placeholder="z.B. Sawatdii" />
+      <label id="addLabelIpa">C – Lautschrift</label>
+      <input type="text" id="addIpa" placeholder="z.B. sa˨˩.wat˨˩.diː˧" />
+      <label id="addLabelMeaning">D – Bedeutung (Deutsch)</label>
+      <input type="text" id="addMeaning" placeholder="z.B. Hallo" />
+      <label id="addLabelEnglish">E – Englisch</label>
+      <input type="text" id="addEnglish" placeholder="e.g. Hello" />
+      <div style="margin-top:14px; display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-primary" onclick="addVocab()" id="addSubmitBtn">Hinzufügen</button>
+        <span id="addMsg" style="display:none; font-size:13px; color:#6fcf6f;">✓ Gespeichert!</span>
+      </div>
+    </div>
+    <p class="storage-info" id="addStorageInfo">💾 Vokabeln werden automatisch lokal gespeichert</p>
+  </div>
+
+  <!-- IMPORT TAB -->
+  <div id="tab-import" style="display:none;">
+    <div style="margin-bottom:12px; display:flex; gap:16px; flex-wrap:wrap;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2); margin-top:0; cursor:pointer;">
+        <input type="radio" name="importMode" value="replace" checked> <span id="modeReplaceLabel">Vorhandene ersetzen</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2); margin-top:0; cursor:pointer;">
+        <input type="radio" name="importMode" value="merge"> <span id="modeMergeLabel">Zusammenführen (Duplikate überspringen)</span>
+      </label>
+    </div>
+    <div class="import-box" id="dropZone" onclick="document.getElementById('csvFile').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+      <div style="font-size:28px; margin-bottom:8px;">📄</div>
+      <div style="font-weight:500; margin-bottom:4px;" id="dropTitle">CSV Datei hier ablegen</div>
+      <div style="font-size:13px; color:var(--text4);" id="dropSubtitle">oder klicken zum Auswählen</div>
+      <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="loadCSV(event)">
+    </div>
+    <div class="import-instructions" id="importInstructions">
+      <strong>Spaltenreihenfolge (fest):</strong><br>
+      <code>A = Thai &nbsp;|&nbsp; B = Deutsch lesen &nbsp;|&nbsp; C = Lautschrift &nbsp;|&nbsp; D = Bedeutung &nbsp;|&nbsp; E = Englisch</code><br><br>
+      Google Sheets: Datei → Herunterladen → <code>CSV (.csv)</code>
+    </div>
+    <div style="margin-top:16px; border: 1px solid var(--border2); border-radius:10px; padding:14px;">
+      <div style="font-size:13px; font-weight:500; margin-bottom:10px;" id="syncTitle">🔄 Google Sheets Sync</div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="syncFromSheets(false)" id="syncBtn">🔄 Jetzt synchronisieren</button>
+        <span id="syncStatus" style="font-size:12px; color:var(--text3);">Letzter Sync: noch nie</span>
+      </div>
+      <div style="font-size:12px; color:var(--text4); margin-top:8px;" id="syncHint">Neue Vokabeln aus Google Sheets werden automatisch beim Start geladen. Sync-Modus folgt der Radio-Auswahl oben.</div>
+    </div>
+    <div id="importMsg" style="display:none; margin-top:14px; padding:12px; border-radius:8px; font-size:14px;"></div>
+    <p class="storage-info" id="importStorageInfo">💾 Vokabeln werden automatisch lokal gespeichert</p>
+  </div>
+
+  <!-- DOWNLOAD TAB -->
+  <div id="tab-download" style="display:none;">
+    <div class="dl-box">
+      <h3 id="dlTitle1">📥 Offline-Paket herunterladen</h3>
+      <p id="dlText1">Lädt die aktuelle HTML-Datei und deine Vokabeln als CSV in deinen Download-Ordner. Damit kannst du den Trainer auch ohne Internet nutzen.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="downloadPackage()" id="dlBtn1">⬇ Jetzt Offline-Paket aktualisieren</button>
+      </div>
+    </div>
+    <div class="dl-box">
+      <h3 id="dlTitle2">📄 Nur CSV herunterladen</h3>
+      <p id="dlText2">Exportiert deine aktuellen Vokabeln als CSV-Datei.</p>
+      <button class="btn" onclick="exportCSV()" id="dlBtn2">⬇ CSV exportieren</button>
+    </div>
+    <p class="storage-info"><span id="persistLabel">💾 Persistent Storage:</span> <span id="persistStatus">wird geprüft...</span></p>
+  </div>
+</div>
+
+<script>
+const DEFAULT_VOCAB = [{"thai": "ครับ", "pronun": "kráp", "ipa": "Khrạb", "meaning": "Höflichkeitspartikel (Männer ♂ )", "english": "yes"}, {"thai": "ค่ะ / คะ", "pronun": "kâ / ká", "ipa": "Kh̀a/ kha", "meaning": "Höflichkeitspartikel (Frauen ♀ )", "english": "Yes/Okay."}, {"thai": "ใช่", "pronun": "tschái", "ipa": "Chı̀", "meaning": "Ja / richtig", "english": "yes"}, {"thai": "ไม่", "pronun": "mâi", "ipa": "Mị̀", "meaning": "Nein / nicht", "english": "no"}, {"thai": "ขอบคุณ", "pronun": "kàop kun", "ipa": "K̄hxbkhuṇ", "meaning": "Danke", "english": "thank you"}, {"thai": "สวัสดี", "pronun": "sà-wàt-dii", "ipa": "S̄wạs̄dī", "meaning": "Hallo / Auf Wiedersehen", "english": "hello"}, {"thai": "สบายดีไหม", "pronun": "sa-bai dii mai?", "ipa": "S̄bāy dī h̄ịm", "meaning": "Wie geht es dir?", "english": "Are you well?"}, {"thai": "เป็นไงบ้าง", "pronun": "pen ngai baang?", "ipa": "Pĕn ngị b̂āng", "meaning": "Wie geht's? / Wie läuft's?", "english": "How are you"}, {"thai": "สบายดี ขอบคุณ", "pronun": "sa-bai dii", "ipa": "khop khun", "meaning": "S̄bāy dī k̄hxbkhuṇ", "english": "Mir geht es gut"}, {"thai": "ไม่ค่อยสบาย", "pronun": "mai khoi sa-bai", "ipa": "Mị̀ kh̀xy s̄bāy", "meaning": "Mir geht es nicht so gut", "english": "I'm not feeling well."}, {"thai": "ไม่เป็นไร", "pronun": "mâi pen rai", "ipa": "Mị̀ pĕnrị", "meaning": "Kein Problem / macht nichts", "english": "nevermind"}, {"thai": "อยู่", "pronun": "jùu", "ipa": "Xyū̀", "meaning": "sein / sich befinden", "english": "live"}, {"thai": "ไป", "pronun": "bai", "ipa": "Pị", "meaning": "gehen", "english": "go"}, {"thai": "มา", "pronun": "maa", "ipa": "Mā", "meaning": "kommen", "english": "come"}, {"thai": "กิน", "pronun": "gin", "ipa": "Kin", "meaning": "essen", "english": "eat"}, {"thai": "อาหาร", "pronun": "aa-hǎan", "ipa": "Xāh̄ār", "meaning": "Nahrung", "english": "food"}, {"thai": "ดื่ม", "pronun": "düm", "ipa": "Dụ̄̀m", "meaning": "trinken", "english": "drink"}, {"thai": "นอน", "pronun": "noon", "ipa": "Nxn", "meaning": "schlafen", "english": "sleep"}, {"thai": "อยาก", "pronun": "jàak", "ipa": "Xyāk", "meaning": "wollen / möchten", "english": "want"}, {"thai": "ได้", "pronun": "dâai", "ipa": "Dị̂", "meaning": "können / bekommen / OK", "english": "can"}, {"thai": "เอา", "pronun": "ao", "ipa": "Xeā", "meaning": "nehmen / wollen (umg.)", "english": "take"}, {"thai": "บ้าน", "pronun": "bâan", "ipa": "B̂ān", "meaning": "Haus / Zuhause", "english": "house"}, {"thai": "คน", "pronun": "kon", "ipa": "Khn", "meaning": "Person / Mensch", "english": "person"}, {"thai": "วัน", "pronun": "wan", "ipa": "Wạn", "meaning": "Tag", "english": "day"}, {"thai": "เวลา", "pronun": "wee-laa", "ipa": "Welā", "meaning": "Zeit / Uhrzeit", "english": "time"}, {"thai": "ที่ไหน", "pronun": "tîi nǎi", "ipa": "Thī̀h̄ịn", "meaning": "Wo?", "english": "where"}, {"thai": "อะไร", "pronun": "à-rai", "ipa": "Xarị", "meaning": "Was?", "english": "what"}, {"thai": "ทำไม", "pronun": "tam-mai", "ipa": "Thảmị", "meaning": "Warum?", "english": "Why"}, {"thai": "เมื่อไร", "pronun": "müa-rai", "ipa": "Meụ̄̀xrị", "meaning": "Wann?", "english": "when"}, {"thai": "เท่าไร", "pronun": "tâo-rai", "ipa": "Thèārị", "meaning": "Wie viel?", "english": "how much"}, {"thai": "มี", "pronun": "mii", "ipa": "Mī", "meaning": "haben / es gibt", "english": "have"}, {"thai": "ไม่มี", "pronun": "mâi mii", "ipa": "Mị̀mī", "meaning": "nicht haben / gibt es nicht", "english": "do not have"}, {"thai": "ดี", "pronun": "dii", "ipa": "Dī", "meaning": "gut", "english": "good"}, {"thai": "ไม่ดี", "pronun": "mâi dii", "ipa": "Mị̀ dī", "meaning": "nicht gut / schlecht", "english": "not good"}, {"thai": "อร่อย", "pronun": "à-roi", "ipa": "Xr̀xy", "meaning": "lecker", "english": "delicious"}, {"thai": "แพง", "pronun": "peng", "ipa": "Phæng", "meaning": "teuer", "english": "expensive"}, {"thai": "ถูก", "pronun": "tùuk", "ipa": "T̄hūk", "meaning": "billig / richtig", "english": "cheap"}, {"thai": "เร็ว", "pronun": "reo", "ipa": "Rĕw", "meaning": "schnell", "english": "fast"}, {"thai": "ช้า", "pronun": "tschaa", "ipa": "Cĥā", "meaning": "langsam", "english": "slow"}, {"thai": "ใหญ่", "pronun": "jài", "ipa": "H̄ıỵ̀", "meaning": "groß", "english": "big"}, {"thai": "เล็ก", "pronun": "lek", "ipa": "Lĕk", "meaning": "klein", "english": "small"}, {"thai": "ร้อน", "pronun": "roon", "ipa": "R̂xn", "meaning": "heiß", "english": "hot"}, {"thai": "เย็น", "pronun": "jen", "ipa": "Yĕn", "meaning": "kalt / kühl / Abend", "english": "cool"}, {"thai": "น้ำ", "pronun": "nam", "ipa": "N̂ả", "meaning": "Wasser", "english": "water"}, {"thai": "ข้าว", "pronun": "kâao", "ipa": "K̄ĥāw", "meaning": "Reis / Essen allgemein", "english": "rice"}, {"thai": "เงิน", "pronun": "ngern", "ipa": "Ngein", "meaning": "Geld", "english": "money"}, {"thai": "รถ", "pronun": "rot", "ipa": "Rt̄h", "meaning": "Fahrzeug / Auto", "english": "car"}, {"thai": "ถนน", "pronun": "tà-non", "ipa": "T̄hnn", "meaning": "Straße", "english": "road"}, {"thai": "ร้าน", "pronun": "raan", "ipa": "R̂ān", "meaning": "Laden / Restaurant", "english": "store"}, {"thai": "โทรศัพท์", "pronun": "too-rá-sàp", "ipa": "Thorṣ̄ạphth̒", "meaning": "Telefon", "english": "telephone"}, {"thai": "เพื่อน", "pronun": "püan", "ipa": "Pheụ̄̀xn", "meaning": "Freund", "english": "friend"}, {"thai": "ครอบครัว", "pronun": "kràop-krua", "ipa": "Khrxbkhrạw", "meaning": "Familie", "english": "family"}, {"thai": "รู้", "pronun": "ruu", "ipa": "Rū̂", "meaning": "wissen / kennen", "english": "know"}, {"thai": "คิด", "pronun": "kit", "ipa": "Khid", "meaning": "denken", "english": "think"}, {"thai": "พูด", "pronun": "püut", "ipa": "Phūd", "meaning": "sprechen", "english": "speak"}, {"thai": "เข้าใจ", "pronun": "khao dschai", "ipa": "K̄hêācı", "meaning": "verstehen", "english": "understand"}, {"thai": "ไม่เข้าใจ", "pronun": "mâi khâo dschai", "ipa": "Mị̀ k̄hêācı", "meaning": "Ich verstehe nicht", "english": "do not understand"}, {"thai": "ชอบ", "pronun": "tschôp", "ipa": "Chxb", "meaning": "mögen", "english": "gern haben"}, {"thai": "รัก", "pronun": "rák", "ipa": "Rạk", "meaning": "Liebe / lieben", "english": "love"}, {"thai": "วันนี้", "pronun": "wann nii", "ipa": "Wạn nī̂", "meaning": "heute", "english": "today"}, {"thai": "พรุ่งนี้", "pronun": "prung-níi", "ipa": "Phrùng nī̂", "meaning": "morgen", "english": "tomorrow"}, {"thai": "เมื่อวาน", "pronun": "müa-waan", "ipa": "Meụ̄̀x wān", "meaning": "gestern", "english": "yesterday"}, {"thai": "ตอนนี้", "pronun": "ton nii", "ipa": "Txn nī̂", "meaning": "jetzt", "english": "now"}, {"thai": "หิว", "pronun": "hiu", "ipa": "H̄iw", "meaning": "hungrig", "english": "hungry"}, {"thai": "บ้าน", "pronun": "Ban", "ipa": "B̂ān", "meaning": "Dorf / Haus", "english": "house"}, {"thai": "อ่าว", "pronun": "Ao", "ipa": "X̀āw", "meaning": "Meeresbucht", "english": "bay"}, {"thai": "นาง", "pronun": "Nang", "ipa": "Nāng", "meaning": "Prinzessin / Lady", "english": "Mrs."}, {"thai": "ปกติ", "pronun": "bok-dti", "ipa": "Pkti", "meaning": "normal", "english": "gewöhnlich"}, {"thai": "ปกติไหม?", "pronun": "bpòk-dtì mái?", "ipa": "Pkti h̄ịm?", "meaning": "Ist das normal?", "english": "Is this normal?"}, {"thai": "ขี้เกียจ", "pronun": "kii giat", "ipa": "K̄hī̂ keīyc", "meaning": "Ich habe keine Lust", "english": "Motivation / Ich bin zu faul"}, {"thai": "งง", "pronun": "ngong", "ipa": "Ngng", "meaning": "verwirrt", "english": "durcheinander"}, {"thai": "งงไหม?", "pronun": "ngong mái?", "ipa": "Ngng h̄ịm?", "meaning": "Bist du verwirrt? / Verstehst du das nicht?", "english": "Confused?"}, {"thai": "ฉันงง", "pronun": "chǎn/phom ngong", "ipa": "C̄hạn ngng", "meaning": "Ich bin verwirrt", "english": "I am confused"}, {"thai": "กอด", "pronun": "got", "ipa": "Kxd", "meaning": "umarmen / Umarmung", "english": "hug"}, {"thai": "โง่", "pronun": "ngoh", "ipa": "Ngò", "meaning": "dumm", "english": "doof"}, {"thai": "อย่า", "pronun": "Yàa", "ipa": "Xỳā", "meaning": "nicht / tu nicht", "english": "do not"}, {"thai": "อย่าโง่", "pronun": "Yàa ngô", "ipa": "Xỳā ngò", "meaning": "Sei nicht dumm / Stell dich nicht dumm an", "english": "Don't be stupid."}, {"thai": "หุบปาก", "pronun": "Hupp Paak", "ipa": "H̄ubpāk", "meaning": "mach den Mund zu (direkt und unhöflich)", "english": "shut your mouth"}, {"thai": "เงียบหน่อย", "pronun": "ngîap nòi", "ipa": "Ngeīyb h̄ǹxy", "meaning": "Sei bitte etwas leiser", "english": "Be quiet."}, {"thai": "กรุณาเงียบหน่อย", "pronun": "garunaa ngîap nòi", "ipa": "Kruṇā ngeīyb h̄ǹxy", "meaning": "Bitte seien Sie etwas leiser", "english": "Please be quiet."}, {"thai": "เงียบ ๆ", "pronun": "ngîap ngîap", "ipa": "Ngeīyb «", "meaning": "Still / Sei ruhig", "english": "Quietly"}, {"thai": "หนื่อย", "pronun": "nüai", "ipa": "H̄nụ̄̀xy", "meaning": "müde/erschöpft", "english": "tired"}, {"thai": "ผมเหนื่อย", "pronun": "phom nüai", "ipa": "P̄hm h̄enụ̄̀xy", "meaning": "ich bin müde", "english": "I'm tired."}, {"thai": "เหนื่อยไหม?", "pronun": "nüai mai?", "ipa": "H̄enụ̄̀xy h̄ịm?", "meaning": "Bist du müde? / Ist das anstrengend?", "english": "Tired?"}, {"thai": "ปวด", "pronun": "puat", "ipa": "Pwd", "meaning": "Schmerzen haben", "english": "pain"}, {"thai": "ฟัน", "pronun": "fan", "ipa": "Fạn", "meaning": "Zahn", "english": "tooth"}, {"thai": "ผมปวดฟัน", "pronun": "phom ♂ puat fan", "ipa": "P̄hm pwd fạn", "meaning": "Ich habe Zahnschmerzen ♂", "english": "I have a toothache."}, {"thai": "ฉันปวดฟัน", "pronun": "chan ♀ puat fan", "ipa": "C̄hạn pwd fạn", "meaning": "Ich habe Zahnschmerzen ♀", "english": "I have a toothache."}, {"thai": "คุณปวดฟันไหม?", "pronun": "khun puat fan mai?", "ipa": "Khuṇ pwd fạn h̄ịm?", "meaning": "Hast du Zahnschmerzen?“", "english": "Are you experiencing a toothache?"}, {"thai": "ความรัก", "pronun": "Kwaam-rák", "ipa": "Khwām rạk", "meaning": "Liebe", "english": "love"}, {"thai": "คือ", "pronun": "küü", "ipa": "Khụ̄x", "meaning": "ist / bedeutet", "english": "is"}, {"thai": "การห่วงใย", "pronun": "gaan-hùang-yai", "ipa": "Kār h̄̀wngyı", "meaning": "Fürsorge / sich sorgen / um jemanden kümmern", "english": "Concern"}, {"thai": "ความรักคือการห่วงใย", "pronun": "Kwaam-rák küü gaan–huang-jai", "ipa": "Khwām rạk khụ̄x kār h̄̀wngyı", "meaning": "Liebe ist Fürsorge / Liebe bedeutet", "english": "sich um jemanden zu sorgen"}, {"thai": "ร้านอาหาร", "pronun": "ráan aa-hǎan", "ipa": "R̂ān xāh̄ār", "meaning": "Restaurant", "english": "restaurant"}, {"thai": "ร้าน", "pronun": "ráan", "ipa": "R̂ān", "meaning": "Laden", "english": "Geschäft"}, {"thai": "อาหาร", "pronun": "aa-hǎan", "ipa": "Xāh̄ār", "meaning": "Essen", "english": "Nahrung"}, {"thai": "ขับรถ", "pronun": "kàp rót", "ipa": "K̄hạb rt̄h", "meaning": "Auto fahren", "english": "drive a car"}, {"thai": "ขับ", "pronun": "kàp", "ipa": "K̄hạb", "meaning": "fahren", "english": "drive"}, {"thai": "รถ", "pronun": "rót", "ipa": "Rt̄h", "meaning": "Fahrzeug", "english": "Auto"}, {"thai": "ผมขับรถ", "pronun": "phǒm kàp rót", "ipa": "P̄hm k̄hạb rt̄h", "meaning": "Ich fahre Auto", "english": "I'm driving."}, {"thai": "คุณขับรถไหม", "pronun": "khun kàp rót mái?", "ipa": "Khuṇ k̄hạb rt̄h h̄ịm", "meaning": "Kannst du Auto fahren?", "english": "Do you drive?"}];
+
+const STORAGE_KEY = "thai_trainer_vocab";
+const DARK_KEY = "thai_trainer_dark";
+const STATS_KEY = "thai_trainer_stats";
+const VOICE_KEY = "thai_trainer_voice";
+const SYNC_KEY = "thai_trainer_last_sync";
+const LANG_KEY = "thai_trainer_ui_lang";
+const DOWNLOAD_KEY = "thai_trainer_last_download";
+const DOWNLOAD_INTERVAL = 7 * 24 * 60 * 60 * 1000; // 7 Tage
+const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCJqwgJCguXJpBZvIvb-nFkJrqZ0V3-PGSuKNBkj5hgJvAsbcSe9cXiaQxTMZS8c4xO5_Ybyj6dsr8/pub?gid=830567012&single=true&output=tsv";
+
+let vocab = loadVocab();
+let mode = "th-de";
+let queue = [], current = null, flipped = false;
+let known = 0, unknown = 0, wrongCards = [];
+let totalInSession = 0;
+let availableVoices = [];
+let uiLang = "th"; // "th" = full UI (Deutsch+alle Tabs), "en" = English UI, eingeschränkte Tabs
+
+// ── i18n ──
+const I18N = {
+  de: {
+    subtitle: "Dein persönlicher Vokabel-Trainer",
+    tabLearn: "Lernen", tabList: "Vokabeln", tabAdd: "Hinzufügen", tabImport: "CSV Import", tabDownload: "Download",
+    modeThDe: "Thai → Deutsch", modeDeTh: "Deutsch → Thai", modeBoth: "Gemischt", modeEnTh: "Englisch → Thai", modeThEn: "Thai → Englisch",
+    cardLangThDe: "Thai → Deutsch", cardLangDeTh: "Deutsch → Thai", cardLangEnTh: "Englisch → Thai", cardLangThEn: "Thai → Englisch",
+    cardHint: "Tippen zum Aufdecken",
+    listenBtn: "🔊 Anhören", restartBtn: "↺ Neustart", allBtn: "📚 Alle Karten üben",
+    againBtn: "✗ Nochmal", knownBtn: "✓ Gewusst",
+    statFällig: "fällig: ", statLevelPrefix: "⭐ Level: –",
+    doneTitle: "Runde abgeschlossen!", doneRestartBtn: "Nochmal von vorne", doneWrongBtn: "Nur falsche wiederholen",
+    totalStatsLabel: "Gesamtstatistik (alle Sessions)", resetStatsBtn: "Zurücksetzen",
+    listExportBtn: "⬇ CSV Export", listClearBtn: "🗑 Alle löschen", searchPlaceholder: "Suchen...",
+    addTitle: "Neue Vokabel", addLabelThai: "A – Thai", addLabelPronun: "B – Deutsch lesen (Aussprache)",
+    addLabelIpa: "C – Lautschrift", addLabelMeaning: "D – Bedeutung (Deutsch)", addLabelEnglish: "E – Englisch",
+    addSubmitBtn: "Hinzufügen", addStorageInfo: "💾 Vokabeln werden automatisch lokal gespeichert",
+    modeReplaceLabel: "Vorhandene ersetzen", modeMergeLabel: "Zusammenführen (Duplikate überspringen)",
+    dropTitle: "CSV Datei hier ablegen", dropSubtitle: "oder klicken zum Auswählen",
+    importInstructions: '<strong>Spaltenreihenfolge (fest):</strong><br><code>A = Thai &nbsp;|&nbsp; B = Deutsch lesen</code><br><code>C = Lautschrift &nbsp;|&nbsp; D = Bedeutung</code><br><code>E = Englisch</code><br><br>Google Sheets: Datei → Herunterladen → <code>CSV (.csv)</code>, dann beim Speichern „Semikolon" als Trennzeichen wählen.',
+    syncTitle: "🔄 Google Sheets Sync", syncBtn: "🔄 Jetzt synchronisieren",
+    syncHint: "Neue Vokabeln aus Google Sheets werden automatisch beim Start geladen. Sync-Modus folgt der Radio-Auswahl oben.",
+    importStorageInfo: "💾 Vokabeln werden automatisch lokal gespeichert",
+    dlTitle1: "📥 Offline-Paket herunterladen",
+    dlText1: "Lädt die aktuelle HTML-Datei und deine Vokabeln als CSV in deinen Download-Ordner. Damit kannst du den Trainer auch ohne Internet nutzen.",
+    dlBtn1: "⬇ Jetzt Offline-Paket aktualisieren",
+    dlTitle2: "📄 Nur CSV herunterladen", dlText2: "Exportiert deine aktuellen Vokabeln als CSV-Datei.", dlBtn2: "⬇ CSV exportieren",
+    persistLabel: "💾 Persistent Storage:",
+    apTitle: "📥 Offline-Version herunterladen",
+    apText: "Lade die aktuelle Version mit allen deinen Vokabeln als HTML und CSV herunter, um sie offline zu nutzen.",
+    apDownloadBtn: "⬇ Jetzt herunterladen", apLaterBtn: "Später",
+    srTitle: "💡 Wie funktioniert Spaced Repetition?",
+    srIntro: 'Jede Vokabel hat ein <strong>Level (0–5)</strong>. Je höher das Level, desto seltener wird sie abgefragt:',
+    srColLevel: "Level", srColRepeat: "Wiederholung nach", srNew: "Neu", srNow: "sofort",
+    sr1d: "1 Tag", sr3d: "3 Tagen", sr7d: "7 Tagen", sr14d: "14 Tagen", sr30d: "30 Tagen",
+    srExplain: '<strong>✓ Richtig</strong> → Level steigt, Karte kommt später wieder.<br><strong>✗ Falsch</strong> → Level sinkt, Karte kommt früher wieder.<br><br>Mit <strong>„↺ Neustart"</strong> siehst du nur fällige Karten.<br>Mit <strong>„📚 Alle Karten üben"</strong> kannst du alle Karten unabhängig vom System durchgehen.',
+    srOkBtn: "Schließen",
+    srResetBtn: "Lv. zurücksetzen",
+    resetLevelsText: "Sollen alle Level komplett zurückgesetzt werden?",
+    resetLevelsYesBtn: "Ja", resetLevelsNoBtn: "Nein",
+    requiredAlert: "Thai (A) und Bedeutung (D) sind Pflichtfelder.",
+    confirmDeleteVocab: "Vokabel löschen?", confirmClearAll: "Alle Vokabeln löschen?", confirmResetStats: "Gesamtstatistik zurücksetzen?",
+    csvNoEntries: "Keine gültigen Einträge gefunden.", csvDropOnly: "Bitte eine .csv Datei verwenden.",
+    csvImportedReplace: " Vokabeln importiert (Liste ersetzt).", csvImportedMerge1: " neue Vokabeln hinzugefügt (", csvImportedMerge2: " Duplikate übersprungen).",
+    syncLastNever: "Letzter Sync: noch nie", syncLastPrefix: "Letzter Sync: ",
+    syncLoadingBtn: "⏳ Lädt...", syncFailPrefix: "⚠ Sync fehlgeschlagen: ",
+    syncReplace: " Vokabeln geladen (Liste ersetzt).", syncMerge1: " neue Vokabeln hinzugefügt (", syncMerge2: " bereits vorhanden).",
+    persistOn: "✓ Aktiviert – Daten werden dauerhaft gespeichert", persistOff: "⚠ Nicht gewährt – Browser kann Daten löschen",
+    persistUnsupported: "nicht unterstützt", persistError: "Fehler beim Prüfen",
+    statKarten: " Karten", gewusst: "Gewusst: ", von: " von ", nochmal: " — Nochmal: ", nochFaellig: " — Noch ", faelligeKarten: " fällige Karten",
+    allDone: "🎉 Alle Karten sind aktuell gelernt! Morgen gibt es neue fällige Karten.",
+    voiceLoading: "🔊 Stimme lädt...", listGefunden: " / ", vokabelnSuffix: " Vokabeln", noVocabFound: "Keine Vokabeln gefunden",
+  },
+  en: {
+    subtitle: "Your personal vocabulary trainer",
+    tabLearn: "Learn", tabList: "Vocabulary", tabAdd: "Add", tabImport: "CSV Import", tabDownload: "Download",
+    modeThDe: "Thai → German", modeDeTh: "German → Thai", modeBoth: "Mixed", modeEnTh: "English → Thai", modeThEn: "Thai → English",
+    cardLangThDe: "Thai → German", cardLangDeTh: "German → Thai", cardLangEnTh: "English → Thai", cardLangThEn: "Thai → English",
+    cardHint: "Tap to reveal",
+    listenBtn: "🔊 Listen", restartBtn: "↺ Restart", allBtn: "📚 Practice all cards",
+    againBtn: "✗ Again", knownBtn: "✓ Known",
+    statFällig: "due: ", statLevelPrefix: "⭐ Level: –",
+    doneTitle: "Round complete!", doneRestartBtn: "Start over", doneWrongBtn: "Repeat wrong only",
+    totalStatsLabel: "Overall stats (all sessions)", resetStatsBtn: "Reset",
+    listExportBtn: "⬇ Export CSV", listClearBtn: "🗑 Delete all", searchPlaceholder: "Search...",
+    addTitle: "New vocabulary", addLabelThai: "A – Thai", addLabelPronun: "B – Pronunciation",
+    addLabelIpa: "C – Phonetic", addLabelMeaning: "D – Meaning (German)", addLabelEnglish: "E – English",
+    addSubmitBtn: "Add", addStorageInfo: "💾 Vocabulary is automatically saved locally",
+    modeReplaceLabel: "Replace existing", modeMergeLabel: "Merge (skip duplicates)",
+    dropTitle: "Drop CSV file here", dropSubtitle: "or click to select",
+    importInstructions: '<strong>Fixed column order:</strong><br><code>A = Thai &nbsp;|&nbsp; B = Pronunciation</code><br><code>C = Phonetic &nbsp;|&nbsp; D = Meaning</code><br><code>E = English</code><br><br>Google Sheets: File → Download → <code>CSV (.csv)</code>',
+    syncTitle: "🔄 Google Sheets Sync", syncBtn: "🔄 Sync now",
+    syncHint: "New vocabulary from Google Sheets loads automatically on start. Sync mode follows the radio selection above.",
+    importStorageInfo: "💾 Vocabulary is automatically saved locally",
+    dlTitle1: "📥 Download offline package",
+    dlText1: "Downloads the current HTML file and your vocabulary as CSV to your downloads folder, so you can use the trainer offline too.",
+    dlBtn1: "⬇ Update offline package now",
+    dlTitle2: "📄 Download CSV only", dlText2: "Exports your current vocabulary as a CSV file.", dlBtn2: "⬇ Export CSV",
+    persistLabel: "💾 Persistent Storage:",
+    apTitle: "📥 Download offline version",
+    apText: "Download the current version with all your vocabulary as HTML and CSV to use it offline.",
+    apDownloadBtn: "⬇ Download now", apLaterBtn: "Later",
+    srTitle: "💡 How does Spaced Repetition work?",
+    srIntro: 'Each word has a <strong>level (0–5)</strong>. The higher the level, the less often it gets reviewed:',
+    srColLevel: "Level", srColRepeat: "Repeats after", srNew: "New", srNow: "now",
+    sr1d: "1 day", sr3d: "3 days", sr7d: "7 days", sr14d: "14 days", sr30d: "30 days",
+    srExplain: '<strong>✓ Correct</strong> → level goes up, card comes back later.<br><strong>✗ Wrong</strong> → level goes down, card comes back sooner.<br><br>Use <strong>"↺ Restart"</strong> to see only due cards.<br>Use <strong>"📚 Practice all cards"</strong> to go through all cards regardless of the system.',
+    srOkBtn: "Close",
+    srResetBtn: "Lv. Reset",
+    resetLevelsText: "Are you sure you want to reset all levels?",
+    resetLevelsYesBtn: "Yes", resetLevelsNoBtn: "No",
+    requiredAlert: "Thai (A) and Meaning (D) are required.",
+    confirmDeleteVocab: "Delete word?", confirmClearAll: "Delete all vocabulary?", confirmResetStats: "Reset overall stats?",
+    csvNoEntries: "No valid entries found.", csvDropOnly: "Please use a .csv file.",
+    csvImportedReplace: " words imported (list replaced).", csvImportedMerge1: " new words added (", csvImportedMerge2: " duplicates skipped).",
+    syncLastNever: "Last sync: never", syncLastPrefix: "Last sync: ",
+    syncLoadingBtn: "⏳ Loading...", syncFailPrefix: "⚠ Sync failed: ",
+    syncReplace: " words loaded (list replaced).", syncMerge1: " new words added (", syncMerge2: " already present).",
+    persistOn: "✓ Enabled – data is stored permanently", persistOff: "⚠ Not granted – browser may delete data",
+    persistUnsupported: "not supported", persistError: "Error checking",
+    statKarten: " cards", gewusst: "Known: ", von: " of ", nochmal: " — Again: ", nochFaellig: " — Still ", faelligeKarten: " due cards",
+    allDone: "🎉 All cards are up to date! New due cards tomorrow.",
+    voiceLoading: "🔊 Loading voice...", listGefunden: " / ", vokabelnSuffix: " words", noVocabFound: "No words found",
+  }
+};
+function t(key) { return I18N[uiLang === "en" ? "en" : "de"][key]; }
+
+// ── Storage ──
+function loadVocab() {
+  try { let s = localStorage.getItem(STORAGE_KEY); if(s) { let p=JSON.parse(s); if(Array.isArray(p)&&p.length>0) return p; } } catch(e) {}
+  return [...DEFAULT_VOCAB];
+}
+function saveVocab() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(vocab)); } catch(e) {} }
+
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {known:0, unknown:0}; } catch(e) { return {known:0, unknown:0}; }
+}
+function saveStats(s) { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch(e) {} }
+function updateTotalStatsDisplay() {
+  let s = loadStats();
+  document.getElementById("totalKnown").textContent = "✓ " + (uiLang==="en"?"Total: ":"Gesamt: ") + s.known;
+  document.getElementById("totalUnknown").textContent = "✗ " + (uiLang==="en"?"Total: ":"Gesamt: ") + s.unknown;
+}
+function resetTotalStats() {
+  if(confirm(t("confirmResetStats"))) { saveStats({known:0,unknown:0}); updateTotalStatsDisplay(); }
+}
+
+// ── Persistent Storage ──
+async function requestPersistentStorage() {
+  let el = document.getElementById("persistStatus");
+  if(!navigator.storage || !navigator.storage.persist) { if(el) el.textContent = t("persistUnsupported"); return; }
+  try {
+    let granted = await navigator.storage.persisted();
+    if(!granted) granted = await navigator.storage.persist();
+    if(el) el.textContent = granted ? t("persistOn") : t("persistOff");
+  } catch(e) { if(el) el.textContent = t("persistError"); }
+}
+
+// ── Dark Mode ──
+function initDark() {
+  let stored = localStorage.getItem(DARK_KEY);
+  if(stored === "0") { document.body.classList.remove("dark"); document.getElementById("darkBtn").textContent = "🌙"; }
+}
+function toggleDark() {
+  let isDark = document.body.classList.toggle("dark");
+  document.getElementById("darkBtn").textContent = isDark ? "☀️" : "🌙";
+  try { localStorage.setItem(DARK_KEY, isDark ? "1" : "0"); } catch(e) {}
+  resetColorScheme();
+  clearCurrentScheme();
+}
+
+// ── Color Scheme (random accent/background shuffle) ──
+const COLOR_HISTORY_KEY = "thai_trainer_color_history";
+const COLOR_CURRENT_KEY = "thai_trainer_color_current";
+const MAX_COLOR_HISTORY = 5;
+
+function loadColorHistory() {
+  try { return JSON.parse(localStorage.getItem(COLOR_HISTORY_KEY)) || []; } catch(e) { return []; }
+}
+function saveColorHistory(hist) {
+  try { localStorage.setItem(COLOR_HISTORY_KEY, JSON.stringify(hist)); } catch(e) {}
+}
+function getCurrentScheme() {
+  try { return JSON.parse(localStorage.getItem(COLOR_CURRENT_KEY)) || null; } catch(e) { return null; }
+}
+function saveCurrentScheme(scheme) {
+  try { localStorage.setItem(COLOR_CURRENT_KEY, JSON.stringify(scheme)); } catch(e) {}
+}
+function clearCurrentScheme() {
+  try { localStorage.removeItem(COLOR_CURRENT_KEY); } catch(e) {}
+}
+
+// Generates a random hue-shifted scheme. isDark adapts saturation/lightness ranges
+// so text stays readable — only --bg, --bg2, --border tints change, never --text*.
+function generateRandomScheme() {
+  let hue = Math.floor(Math.random() * 360);
+  return { hue: hue, sat: 45 + Math.floor(Math.random() * 40) }; // sat 45-85%, punchy tint
+}
+
+function hslBg(hue, sat, light) { return `hsl(${hue}, ${sat}%, ${light}%)`; }
+
+function applyColorScheme(scheme) {
+  if(!scheme) { resetColorScheme(); return; }
+  let isDark = document.body.classList.contains("dark");
+  let root = document.body.style;
+  let cardSat = Math.min(scheme.sat, 22); // card surface stays calmer so text is always readable
+  if(isDark) {
+    root.setProperty("--bg", hslBg(scheme.hue, scheme.sat, 7));
+    root.setProperty("--bg2", hslBg(scheme.hue, cardSat, 14));
+    root.setProperty("--border", hslBg(scheme.hue, scheme.sat, 22));
+    root.setProperty("--border2", hslBg(scheme.hue, scheme.sat, 30));
+    root.setProperty("--hover", hslBg(scheme.hue, scheme.sat, 20));
+    root.setProperty("--hover2", hslBg(scheme.hue, scheme.sat, 20));
+    root.setProperty("--instr-bg", hslBg(scheme.hue, cardSat, 14));
+    root.setProperty("--code-bg", hslBg(scheme.hue, scheme.sat, 22));
+    root.setProperty("--progress-bg", hslBg(scheme.hue, scheme.sat, 20));
+  } else {
+    root.setProperty("--bg", hslBg(scheme.hue, scheme.sat, 88));
+    root.setProperty("--bg2", hslBg(scheme.hue, cardSat, 99));
+    root.setProperty("--border", hslBg(scheme.hue, scheme.sat, 78));
+    root.setProperty("--border2", hslBg(scheme.hue, scheme.sat, 70));
+    root.setProperty("--hover", hslBg(scheme.hue, scheme.sat, 90));
+    root.setProperty("--hover2", hslBg(scheme.hue, scheme.sat, 87));
+    root.setProperty("--instr-bg", hslBg(scheme.hue, cardSat, 96));
+    root.setProperty("--code-bg", hslBg(scheme.hue, scheme.sat, 80));
+    root.setProperty("--progress-bg", hslBg(scheme.hue, scheme.sat, 80));
+  }
+}
+
+function resetColorScheme() {
+  let root = document.body.style;
+  ["--bg","--bg2","--border","--border2","--hover","--hover2","--instr-bg","--code-bg","--progress-bg"].forEach(p => root.removeProperty(p));
+}
+
+function randomizeColor() {
+  let scheme = generateRandomScheme();
+  applyColorScheme(scheme);
+  saveCurrentScheme(scheme);
+  let hist = loadColorHistory();
+  hist.unshift(scheme);
+  if(hist.length > MAX_COLOR_HISTORY) hist = hist.slice(0, MAX_COLOR_HISTORY);
+  saveColorHistory(hist);
+  renderColorPicker();
+}
+
+function renderColorPicker() {
+  let hist = loadColorHistory();
+  let picker = document.getElementById("colorPicker");
+  let html = "";
+  let noSchemesText = uiLang === "en" ? "No colors created yet" : "Noch keine Farben erstellt";
+  let schemaText = uiLang === "en" ? "Scheme " : "Schema ";
+  let customColorText = uiLang === "en" ? "Make Color" : "Eigene Farbe";
+  if(hist.length === 0) {
+    html += `<span style="font-size:12px; color:var(--text4); padding:6px;">${noSchemesText}</span>`;
+  } else {
+    html += hist.map((s, i) =>
+      `<button onclick="selectColorFromHistory(${i})" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left;">
+         <span style="width:16px; height:16px; border-radius:4px; background:${hslBg(s.hue, s.sat, 55)}; display:inline-block; border:1px solid var(--border2);"></span>
+         <span style="font-size:12px;">${schemaText}${i+1}</span>
+       </button>`
+    ).join("");
+  }
+  html += `<div style="height:1px; background:var(--border2); margin:4px 0;"></div>`;
+  html += `<button onclick="openCustomColorPicker()" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left;">
+     <span style="width:16px; height:16px; border-radius:4px; background:linear-gradient(135deg, red, orange, yellow, green, blue, violet); display:inline-block; border:1px solid var(--border2);"></span>
+     <span style="font-size:12px;">${customColorText}</span>
+   </button>`;
+  picker.innerHTML = html;
+}
+
+function openCustomColorPicker() {
+  document.getElementById("customColorInput").click();
+}
+function hexToHue(hex) {
+  let r = parseInt(hex.substr(1,2),16)/255;
+  let g = parseInt(hex.substr(3,2),16)/255;
+  let b = parseInt(hex.substr(5,2),16)/255;
+  let max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h = 0, d = max - min;
+  if(d !== 0) {
+    if(max === r) h = ((g-b)/d) % 6;
+    else if(max === g) h = (b-r)/d + 2;
+    else h = (r-g)/d + 4;
+    h = Math.round(h * 60);
+    if(h < 0) h += 360;
+  }
+  return h;
+}
+function onCustomColorPicked(hex) {
+  let hue = hexToHue(hex);
+  let scheme = { hue: hue, sat: 60 };
+  applyColorScheme(scheme);
+  saveCurrentScheme(scheme);
+  let hist = loadColorHistory();
+  hist.unshift(scheme);
+  if(hist.length > MAX_COLOR_HISTORY) hist = hist.slice(0, MAX_COLOR_HISTORY);
+  saveColorHistory(hist);
+  renderColorPicker();
+  document.getElementById("colorPicker").classList.remove("show");
+}
+
+function selectColorFromHistory(i) {
+  let hist = loadColorHistory();
+  let scheme = hist[i];
+  if(!scheme) return;
+  applyColorScheme(scheme);
+  saveCurrentScheme(scheme);
+  document.getElementById("colorPicker").classList.remove("show");
+}
+
+let colorPressTimer = null;
+let colorLongPressed = false;
+function onColorClick() {
+  if(colorLongPressed) { colorLongPressed = false; return; }
+  let current = getCurrentScheme();
+  if(!current) {
+    // No scheme active (e.g. just switched dark/bright) → restore last used scheme if available
+    let hist = loadColorHistory();
+    if(hist.length > 0) {
+      applyColorScheme(hist[0]);
+      saveCurrentScheme(hist[0]);
+      return;
+    }
+  }
+  randomizeColor();
+}
+
+// ── Device / Language detection ──
+function isAndroid() { return /android/i.test(navigator.userAgent); }
+function isGermanDevice() { return navigator.language && navigator.language.toLowerCase().startsWith("de"); }
+
+function shouldShowAndroidPopup() {
+  if(!isGermanDevice()) return false;
+  let last = localStorage.getItem(DOWNLOAD_KEY);
+  if(!last) return true;
+  return (Date.now() - parseInt(last)) > DOWNLOAD_INTERVAL;
+}
+function showAndroidPopup() {
+  if(isAndroid() && shouldShowAndroidPopup())
+    document.getElementById("androidPopup").classList.add("show");
+}
+function closeAndroidPopup() { document.getElementById("androidPopup").classList.remove("show"); }
+
+// ── UI Language / Flag toggle ──
+const RESTRICTED_TABS = ["list","add","import","download"];
+
+function applyUILang() {
+  document.getElementById("flagBtn").textContent = uiLang === "en" ? "🇬🇧" : "🇹🇭";
+  document.getElementById("subtitleText").textContent = t("subtitle");
+  document.getElementById("tabBtn-learn").textContent = t("tabLearn");
+  document.getElementById("tabBtn-list").textContent = t("tabList");
+  document.getElementById("tabBtn-add").textContent = t("tabAdd");
+  document.getElementById("tabBtn-import").textContent = t("tabImport");
+  document.getElementById("tabBtn-download").textContent = t("tabDownload");
+
+  // Mode select options — order differs per UI language
+  let modeSel = document.getElementById("modeSelect");
+  let curVal = modeSel.value;
+  let isFirstLangApply = !curVal;
+  if(uiLang === "en") {
+    modeSel.innerHTML =
+      `<option value="th-en">${t("modeThEn")}</option>` +
+      `<option value="en-th">${t("modeEnTh")}</option>` +
+      `<option value="both">${t("modeBoth")}</option>` +
+      `<option value="th-de">${t("modeThDe")}</option>` +
+      `<option value="de-th">${t("modeDeTh")}</option>`;
+  } else {
+    modeSel.innerHTML =
+      `<option value="th-de">${t("modeThDe")}</option>` +
+      `<option value="de-th">${t("modeDeTh")}</option>` +
+      `<option value="both">${t("modeBoth")}</option>` +
+      `<option value="th-en">${t("modeThEn")}</option>` +
+      `<option value="en-th">${t("modeEnTh")}</option>`;
+  }
+  if(uiLang === "en" && isFirstLangApply) {
+    modeSel.value = "th-en";
+    mode = "th-en";
+  } else {
+    modeSel.value = curVal || "th-de";
+  }
+
+  document.getElementById("listenBtn").textContent = t("listenBtn");
+  document.getElementById("restartBtn").textContent = t("restartBtn");
+  document.getElementById("allBtn").textContent = t("allBtn");
+  document.getElementById("againBtn").textContent = t("againBtn");
+  document.getElementById("knownBtn").textContent = t("knownBtn");
+  document.getElementById("cardHint").textContent = t("cardHint");
+  document.getElementById("doneTitle").textContent = t("doneTitle");
+  document.getElementById("doneRestartBtn").textContent = t("doneRestartBtn");
+  document.getElementById("doneWrongBtn").textContent = t("doneWrongBtn");
+  document.getElementById("totalStatsLabel").textContent = t("totalStatsLabel");
+  document.getElementById("resetStatsBtn").textContent = t("resetStatsBtn");
+
+  document.getElementById("listExportBtn").textContent = t("listExportBtn");
+  document.getElementById("listClearBtn").textContent = t("listClearBtn");
+  document.getElementById("searchInput").placeholder = t("searchPlaceholder");
+
+  document.getElementById("addTitle").textContent = t("addTitle");
+  document.getElementById("addLabelThai").textContent = t("addLabelThai");
+  document.getElementById("addLabelPronun").textContent = t("addLabelPronun");
+  document.getElementById("addLabelIpa").textContent = t("addLabelIpa");
+  document.getElementById("addLabelMeaning").textContent = t("addLabelMeaning");
+  document.getElementById("addLabelEnglish").textContent = t("addLabelEnglish");
+  document.getElementById("addSubmitBtn").textContent = t("addSubmitBtn");
+  document.getElementById("addStorageInfo").textContent = t("addStorageInfo");
+
+  document.getElementById("modeReplaceLabel").textContent = t("modeReplaceLabel");
+  document.getElementById("modeMergeLabel").textContent = t("modeMergeLabel");
+  document.getElementById("dropTitle").textContent = t("dropTitle");
+  document.getElementById("dropSubtitle").textContent = t("dropSubtitle");
+  document.getElementById("importInstructions").innerHTML = t("importInstructions");
+  document.getElementById("syncTitle").textContent = t("syncTitle");
+  document.getElementById("syncHint").textContent = t("syncHint");
+  document.getElementById("importStorageInfo").textContent = t("importStorageInfo");
+
+  document.getElementById("dlTitle1").textContent = t("dlTitle1");
+  document.getElementById("dlText1").textContent = t("dlText1");
+  document.getElementById("dlBtn1").textContent = t("dlBtn1");
+  document.getElementById("dlTitle2").textContent = t("dlTitle2");
+  document.getElementById("dlText2").textContent = t("dlText2");
+  document.getElementById("dlBtn2").textContent = t("dlBtn2");
+  document.getElementById("persistLabel").textContent = t("persistLabel");
+
+  document.getElementById("apTitle").textContent = t("apTitle");
+  document.getElementById("apText").textContent = t("apText");
+  document.getElementById("apDownloadBtn").textContent = t("apDownloadBtn");
+  document.getElementById("apLaterBtn").textContent = t("apLaterBtn");
+
+  document.getElementById("srTitle").textContent = t("srTitle");
+  document.getElementById("srIntro").innerHTML = t("srIntro");
+  document.getElementById("srColLevel").textContent = t("srColLevel");
+  document.getElementById("srColRepeat").textContent = t("srColRepeat");
+  document.getElementById("srNew").textContent = t("srNew");
+  document.getElementById("srNow").textContent = t("srNow");
+  document.getElementById("sr1d").textContent = t("sr1d");
+  document.getElementById("sr3d").textContent = t("sr3d");
+  document.getElementById("sr7d").textContent = t("sr7d");
+  document.getElementById("sr14d").textContent = t("sr14d");
+  document.getElementById("sr30d").textContent = t("sr30d");
+  document.getElementById("srExplain").innerHTML = t("srExplain");
+  document.getElementById("srOkBtn").textContent = t("srOkBtn");
+  document.getElementById("srResetBtn").textContent = t("srResetBtn");
+  document.getElementById("resetLevelsText").textContent = t("resetLevelsText");
+  document.getElementById("resetLevelsYesBtn").textContent = t("resetLevelsYesBtn");
+  document.getElementById("resetLevelsNoBtn").textContent = t("resetLevelsNoBtn");
+
+  // Show/hide restricted tabs
+  RESTRICTED_TABS.forEach(tab => {
+    document.getElementById("tabBtn-"+tab).style.display = uiLang === "en" ? "none" : "inline-block";
+  });
+  // If currently on a restricted tab and switching to en, fall back to learn
+  if(uiLang === "en") {
+    let activeTab = document.querySelector(".tab.active");
+    if(activeTab && RESTRICTED_TABS.includes(activeTab.id.replace("tabBtn-",""))) {
+      setTab("learn", document.getElementById("tabBtn-learn"));
+    }
+  }
+
+  updateStats();
+  updateTotalStatsDisplay();
+  updateSyncStatus();
+}
+
+function setLang(lang) {
+  uiLang = lang;
+  try { localStorage.setItem(LANG_KEY, lang); } catch(e) {}
+  document.getElementById("flagPicker").classList.remove("show");
+  applyUILang();
+}
+
+let flagPressTimer = null;
+let flagLongPressed = false;
+function onFlagClick() {
+  if(flagLongPressed) { flagLongPressed = false; return; } // long press already handled
+  setLang(uiLang === "en" ? "th" : "en");
+}
+document.addEventListener("DOMContentLoaded", () => {
+  let btn = document.getElementById("flagBtn");
+  let picker = document.getElementById("flagPicker");
+  let pressStart = 0;
+  btn.addEventListener("mousedown", () => { pressStart = Date.now(); flagPressTimer = setTimeout(()=>{ flagLongPressed = true; picker.classList.add("show"); }, 200); });
+  btn.addEventListener("touchstart", () => { pressStart = Date.now(); flagPressTimer = setTimeout(()=>{ flagLongPressed = true; picker.classList.add("show"); }, 200); });
+  btn.addEventListener("mouseup", () => { clearTimeout(flagPressTimer); });
+  btn.addEventListener("touchend", () => { clearTimeout(flagPressTimer); });
+  document.addEventListener("click", (e) => {
+    if(!btn.contains(e.target) && !picker.contains(e.target)) picker.classList.remove("show");
+  });
+
+  let cBtn = document.getElementById("colorBtn");
+  let cPicker = document.getElementById("colorPicker");
+  cBtn.addEventListener("mousedown", () => { colorPressTimer = setTimeout(()=>{ colorLongPressed = true; renderColorPicker(); cPicker.classList.add("show"); }, 200); });
+  cBtn.addEventListener("touchstart", () => { colorPressTimer = setTimeout(()=>{ colorLongPressed = true; renderColorPicker(); cPicker.classList.add("show"); }, 200); });
+  cBtn.addEventListener("mouseup", () => { clearTimeout(colorPressTimer); });
+  cBtn.addEventListener("touchend", () => { clearTimeout(colorPressTimer); });
+  document.addEventListener("click", (e) => {
+    if(!cBtn.contains(e.target) && !cPicker.contains(e.target)) cPicker.classList.remove("show");
+  });
+
+  // Restore last applied color scheme on load
+  let savedScheme = getCurrentScheme();
+  if(savedScheme) applyColorScheme(savedScheme);
+});
+
+// ── Download package ──
+function downloadPackage() {
+  try { localStorage.setItem(DOWNLOAD_KEY, Date.now().toString()); } catch(e) {}
+  exportCSV();
+  setTimeout(() => {
+    let htmlUrl = window.location.href.split("?")[0];
+    if(htmlUrl.startsWith("http") && navigator.onLine) {
+      fetch(htmlUrl)
+        .then(r => r.text())
+        .then(html => {
+          let blob = new Blob([html], {type:"text/html;charset=utf-8;"});
+          let a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "TH_Trainer.html";
+          a.click();
+        })
+        .catch(() => downloadCurrentHTML());
+    } else {
+      downloadCurrentHTML();
+    }
+  }, 500);
+}
+function downloadCurrentHTML() {
+  let html = "<!DOCTYPE html>" + document.documentElement.outerHTML;
+  let blob = new Blob([html], {type:"text/html;charset=utf-8;"});
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "TH_Trainer.html";
+  a.click();
+}
+
+// ── Tabs ──
+function setMode(v) { mode = v; restartSession(); }
+function setTab(tabName, el) {
+  ["learn","list","add","import","download"].forEach(tab => {
+    document.getElementById("tab-"+tab).style.display = tab===tabName ? "block" : "none";
+  });
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  if(el) el.classList.add("active");
+  if(tabName==="list") renderList();
+  if(tabName==="download") requestPersistentStorage();
+}
+
+// ── Spaced Repetition ──
+const SR_KEY = "thai_trainer_sr";
+const SR_INTERVALS = [0, 1, 3, 7, 14, 30];
+
+function loadSR() {
+  try { return JSON.parse(localStorage.getItem(SR_KEY)) || {}; } catch(e) { return {}; }
+}
+function saveSR(sr) { try { localStorage.setItem(SR_KEY, JSON.stringify(sr)); } catch(e) {} }
+function confirmResetLevels() {
+  try { localStorage.removeItem(SR_KEY); } catch(e) {}
+  document.getElementById("resetLevelsPopup").classList.remove("show");
+  document.getElementById("srPopup").classList.remove("show");
+  updateStats();
+}
+
+function getSRRecord(thai) {
+  let sr = loadSR();
+  return sr[thai] || { level: 0, nextDue: 0, streak: 0 };
+}
+
+function updateSRRecord(thai, wasKnown) {
+  let sr = loadSR();
+  let rec = sr[thai] || { level: 0, nextDue: 0, streak: 0 };
+  if(wasKnown) {
+    rec.streak = (rec.streak || 0) + 1;
+    rec.level = Math.min(5, rec.level + 1);
+  } else {
+    rec.streak = 0;
+    rec.level = Math.max(0, rec.level - 1);
+  }
+  let days = SR_INTERVALS[rec.level];
+  rec.nextDue = Date.now() + days * 86400000;
+  sr[thai] = rec;
+  saveSR(sr);
+}
+
+function buildSRQueue() {
+  let sr = loadSR();
+  let now = Date.now();
+  let due = vocab.filter(v => (sr[v.thai] || { nextDue: 0 }).nextDue <= now);
+  due.sort((a, b) => {
+    let ra = sr[a.thai] || { level: 0, nextDue: 0 };
+    let rb = sr[b.thai] || { level: 0, nextDue: 0 };
+    if(ra.level !== rb.level) return ra.level - rb.level;
+    return ra.nextDue - rb.nextDue;
+  });
+  return shuffle(due);
+}
+
+function getDueCount() {
+  let sr = loadSR();
+  let now = Date.now();
+  return vocab.filter(v => (sr[v.thai] || { nextDue: 0 }).nextDue <= now).length;
+}
+
+function getLevelLabel(thai) {
+  let rec = getSRRecord(thai);
+  let stars = ["🔴 "+t("srNew"),"🟠 Lv.1","🟡 Lv.2","🟢 Lv.3","🔵 Lv.4","⭐ Lv.5"];
+  return stars[rec.level] || ("🔴 "+t("srNew"));
+}
+
+// ── Cards ──
+function shuffle(arr) {
+  let a=[...arr]; for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;
+}
+function restartSession(cards) {
+  queue = cards ? shuffle(cards) : buildSRQueue();
+  totalInSession = queue.length;
+  known = 0; unknown = 0; wrongCards = [];
+  document.getElementById("doneMsg").style.display = "none";
+  document.getElementById("mainCard").style.display = "flex";
+  document.getElementById("answerRow").style.display = "none";
+  if(queue.length === 0) { showAllDone(); return; }
+  nextCard();
+}
+function restartWrong() { if(wrongCards.length===0){restartSession();return;} restartSession(wrongCards); }
+function restartAll() { restartSession(vocab); }
+
+function nextCard() {
+  flipped = false;
+  if(queue.length===0){showDone();return;}
+  current=queue.shift();
+  let m = mode==="both" ? (Math.random()<0.5?"th-de":"de-th") : mode;
+  current._mode = m;
+  document.getElementById("cardBack").style.display="none";
+  document.getElementById("answerRow").style.display="none";
+  document.getElementById("cardHint").style.display="block";
+  document.getElementById("mainCard").style.background="";
+  document.getElementById("cardIpa").style.display = "none";
+  document.getElementById("cardPronun").style.display = "none";
+  document.getElementById("cardPronun").textContent = "";
+  document.getElementById("cardPronunBack").style.display = "none";
+  document.getElementById("cardPronunBack").textContent = "";
+  document.getElementById("cardIpaBack").style.display = "none";
+  document.getElementById("cardEnglishBack").style.display = "none";
+  document.getElementById("cardEnglishBack").textContent = "";
+  document.getElementById("enBtn").style.display = "none";
+  document.getElementById("cardFront").classList.remove("size-small");
+  document.getElementById("cardBack").classList.remove("size-large");
+
+  // thaiSide: "front" wenn Thai vorne steht, "back" wenn Thai erst beim Aufdecken erscheint
+  if(m === "th-de") {
+    document.getElementById("cardLang").textContent = t("cardLangThDe");
+    document.getElementById("cardFront").textContent = current.thai;
+    current._thaiSide = "front";
+    document.getElementById("cardBack").textContent = current.meaning;
+  } else if(m === "de-th") {
+    document.getElementById("cardLang").textContent = t("cardLangDeTh");
+    document.getElementById("cardFront").textContent = current.meaning;
+    document.getElementById("cardFront").classList.add("size-small");
+    document.getElementById("cardBack").classList.add("size-large");
+    current._thaiSide = "back";
+    document.getElementById("cardBack").textContent = current.thai;
+  } else if(m === "en-th") {
+    document.getElementById("cardLang").textContent = t("cardLangEnTh");
+    document.getElementById("cardFront").textContent = current.english || current.meaning;
+    document.getElementById("cardFront").classList.add("size-small");
+    document.getElementById("cardBack").classList.add("size-large");
+    current._thaiSide = "back";
+    document.getElementById("cardBack").textContent = current.thai;
+  } else if(m === "th-en") {
+    document.getElementById("cardLang").textContent = t("cardLangThEn");
+    document.getElementById("cardFront").textContent = current.thai;
+    current._thaiSide = "front";
+    document.getElementById("cardBack").textContent = current.english || current.meaning;
+  }
+
+  // Wenn Thai VORNE steht, zeige B+C direkt unter dem Front-Wort
+  if(current._thaiSide === "front") {
+    showPronunFor(current, "front");
+  }
+  updateStats();
+}
+
+function showPronunFor(v, side) {
+  let pronunEl = side === "back" ? "cardPronunBack" : "cardPronun";
+  let ipaEl = side === "back" ? "cardIpaBack" : "cardIpa";
+  if(v.pronun) { document.getElementById(pronunEl).textContent = v.pronun; document.getElementById(pronunEl).style.display = "block"; }
+  if(v.ipa) { document.getElementById(ipaEl).textContent = v.ipa; document.getElementById(ipaEl).style.display = "block"; }
+}
+function flipCard() {
+  if(flipped)return; flipped=true;
+  document.getElementById("cardBack").style.display="block";
+  document.getElementById("cardHint").style.display="none";
+  document.getElementById("answerRow").style.display="flex";
+  if(current && current._thaiSide === "back") {
+    showPronunFor(current, "back");
+  }
+  document.getElementById("enBtn").style.display = (current && current._mode === "th-de") ? "inline-block" : "none";
+}
+function toggleEnglish() {
+  if(!current) return;
+  let el = document.getElementById("cardEnglishBack");
+  if(el.style.display === "none" || el.style.display === "") {
+    el.textContent = current.english || "–";
+    el.style.display = "block";
+  } else {
+    el.style.display = "none";
+  }
+}
+function markCard(wasKnown) {
+  let card=document.getElementById("mainCard");
+  let s=loadStats();
+  updateSRRecord(current.thai, wasKnown);
+  if(wasKnown){known++;card.classList.add("flash-green");s.known++;}
+  else{unknown++;wrongCards.push(current);card.classList.add("flash-red");s.unknown++;}
+  saveStats(s); updateTotalStatsDisplay();
+  setTimeout(()=>{card.classList.remove("flash-green","flash-red");nextCard();},350);
+}
+function updateStats() {
+  let pct = totalInSession > 0 ? Math.round(((totalInSession - queue.length) / totalInSession) * 100) : 0;
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("statTotal").textContent = vocab.length + t("statKarten");
+  document.getElementById("statKnown").textContent = "✓ " + known;
+  document.getElementById("statUnknown").textContent = "✗ " + unknown;
+  document.getElementById("statLeft").textContent = t("statFällig") + (queue.length + (current ? 1 : 0));
+  if(current) document.getElementById("statLevel").textContent = getLevelLabel(current.thai);
+}
+function showDone() {
+  document.getElementById("mainCard").style.display="none";
+  document.getElementById("answerRow").style.display="none";
+  document.getElementById("doneMsg").style.display="block";
+  let due = getDueCount();
+  document.getElementById("doneStats").textContent =
+    t("gewusst")+known+t("von")+totalInSession+t("nochmal")+unknown+(due>0?t("nochFaellig")+due+t("faelligeKarten"):"");
+}
+function showAllDone() {
+  document.getElementById("mainCard").style.display="none";
+  document.getElementById("answerRow").style.display="none";
+  document.getElementById("doneMsg").style.display="block";
+  document.getElementById("doneStats").textContent = t("allDone");
+}
+
+// ── Voice ──
+function loadVoices() {
+  let voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith("th") || v.lang.startsWith("en"));
+  if(voices.length===0)return; availableVoices=voices;
+  let sel=document.getElementById("voiceSelect");
+  let saved=localStorage.getItem(VOICE_KEY)||"";
+  let thVoices = voices.filter(v=>v.lang.startsWith("th"));
+  sel.innerHTML=thVoices.map(v=>`<option value="${v.name}" ${v.name===saved?"selected":""}>${v.name}</option>`).join("");
+  if(!saved && thVoices.length>0) saveVoice(thVoices[0].name);
+}
+function saveVoice(name){try{localStorage.setItem(VOICE_KEY,name);}catch(e){}}
+function speak(){
+  if(!current)return;
+  let isEnglishMode = current._mode === "en-th" || current._mode === "th-en";
+  let u = new SpeechSynthesisUtterance(isEnglishMode ? (current.english || current.meaning) : current.thai);
+  u.lang = isEnglishMode ? "en-US" : "th-TH";
+  if(!isEnglishMode) {
+    let saved=localStorage.getItem(VOICE_KEY);
+    if(saved&&availableVoices.length>0){let v=availableVoices.find(v=>v.name===saved);if(v)u.voice=v;}
+  } else {
+    let enVoice = availableVoices.find(v=>v.lang.startsWith("en"));
+    if(enVoice) u.voice = enVoice;
+  }
+  window.speechSynthesis.speak(u);
+}
+window.speechSynthesis.onvoiceschanged=loadVoices;
+setTimeout(loadVoices,500);
+
+// ── Vocab list ──
+function renderList() {
+  let search=(document.getElementById("searchInput")?.value||"").toLowerCase();
+  let filtered=vocab.filter(v=>v.thai.toLowerCase().includes(search)||(v.pronun||"").toLowerCase().includes(search)||(v.meaning||"").toLowerCase().includes(search)||(v.english||"").toLowerCase().includes(search));
+  document.getElementById("listCount").textContent=filtered.length+t("listGefunden")+vocab.length+t("vokabelnSuffix");
+  let html="";
+  filtered.forEach((v)=>{
+    let realIdx=vocab.indexOf(v);
+    html+=`<div class="vocab-item"><div class="vocab-thai">${v.thai}</div><div class="vocab-pronun">${v.pronun||""}</div><div class="vocab-meaning">${v.meaning||""}</div><button class="btn btn-icon" onclick="deleteVocab(${realIdx})">🗑</button></div>`;
+  });
+  document.getElementById("vocabList").innerHTML=html||`<p style="color:var(--text4);font-size:14px;text-align:center;padding:20px;">${t("noVocabFound")}</p>`;
+}
+function deleteVocab(i){if(confirm(t("confirmDeleteVocab"))){vocab.splice(i,1);saveVocab();renderList();}}
+function clearAll(){if(confirm(t("confirmClearAll"))){vocab=[];saveVocab();renderList();}}
+function addVocab(){
+  let thai=document.getElementById("addThai").value.trim();
+  let pronun=document.getElementById("addPronun").value.trim();
+  let ipa=document.getElementById("addIpa").value.trim();
+  let meaning=document.getElementById("addMeaning").value.trim();
+  let english=document.getElementById("addEnglish").value.trim();
+  if(!thai||!meaning){alert(t("requiredAlert"));return;}
+  vocab.push({thai,pronun,ipa,meaning,english}); saveVocab();
+  document.getElementById("addThai").value="";
+  document.getElementById("addPronun").value="";
+  document.getElementById("addIpa").value="";
+  document.getElementById("addMeaning").value="";
+  document.getElementById("addEnglish").value="";
+  let msg=document.getElementById("addMsg"); msg.style.display="block";
+  setTimeout(()=>msg.style.display="none",2000);
+}
+
+// ── CSV ──
+function exportCSV(){
+  let csv="";
+  vocab.forEach(v=>{csv+=`"${v.thai}";"${v.pronun||""}";"${v.ipa||""}";"${v.meaning||""}";"${v.english||""}"\n`;});
+  let blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  let a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="TH_Trainer_Vokabeln.csv"; a.click();
+}
+function parseCSV(text){
+  let lines=text.trim().split(/\r?\n/); let results=[];
+  for(let i=0;i<lines.length;i++){
+    let cols=lines[i].split(";").map(c=>c.replace(/^"|"$/g,"").trim());
+    if(cols.length>=1&&cols[0]) results.push({thai:cols[0]||"",pronun:cols[1]||"",ipa:cols[2]||"",meaning:cols[3]||"",english:cols[4]||""});
+  }
+  return results;
+}
+function showImportMsg(text,success){
+  let el=document.getElementById("importMsg"); el.textContent=text; el.style.display="block";
+  let dark=document.body.classList.contains("dark");
+  el.style.background=success?(dark?"#1a3a1a":"#e8f5e9"):(dark?"#3a1a1a":"#fdecea");
+  el.style.color=success?"#6fcf6f":"#cf6f6f";
+  el.style.border="1px solid "+(success?"#2d5a2d":"#5a2d2d");
+}
+function processCSV(text){
+  let imported=parseCSV(text);
+  if(imported.length===0){showImportMsg(t("csvNoEntries"),false);return;}
+  let mergeMode=document.querySelector('input[name="importMode"]:checked').value;
+  if(mergeMode==="replace"){vocab=imported;saveVocab();showImportMsg("✓ "+imported.length+t("csvImportedReplace"),true);}
+  else{
+    let existing=new Set(vocab.map(v=>v.thai)); let added=0;
+    imported.forEach(v=>{if(!existing.has(v.thai)){vocab.push(v);added++;}});
+    saveVocab(); showImportMsg("✓ "+added+t("csvImportedMerge1")+(imported.length-added)+t("csvImportedMerge2"),true);
+  }
+}
+function loadCSV(event){
+  let file=event.target.files[0]; if(!file)return;
+  let reader=new FileReader();
+  reader.onload=e=>processCSV(e.target.result);
+  reader.readAsText(file,"UTF-8");
+  event.target.value="";
+}
+function dragOver(e){e.preventDefault();document.getElementById("dropZone").classList.add("dragover");}
+function dragLeave(e){document.getElementById("dropZone").classList.remove("dragover");}
+function dropFile(e){
+  e.preventDefault(); document.getElementById("dropZone").classList.remove("dragover");
+  let file=e.dataTransfer.files[0];
+  if(!file||!file.name.endsWith(".csv")){showImportMsg(t("csvDropOnly"),false);return;}
+  let reader=new FileReader(); reader.onload=ev=>processCSV(ev.target.result); reader.readAsText(file,"UTF-8");
+}
+
+// ── Google Sheets Sync ──
+function updateSyncStatus(){
+  let last=localStorage.getItem(SYNC_KEY); let el=document.getElementById("syncStatus"); if(!el)return;
+  if(last){let d=new Date(parseInt(last));el.textContent=t("syncLastPrefix")+d.toLocaleDateString(uiLang==="en"?"en-US":"de-DE")+" "+d.toLocaleTimeString(uiLang==="en"?"en-US":"de-DE",{hour:"2-digit",minute:"2-digit"});}
+  else el.textContent=t("syncLastNever");
+}
+function parseTSV(text){
+  let lines=text.trim().split(/\r?\n/); let results=[];
+  for(let i=0;i<lines.length;i++){
+    let cols=lines[i].split("\t").map(c=>c.replace(/^"|"$/g,"").trim());
+    if(cols.length>=1&&cols[0]) results.push({thai:cols[0]||"",pronun:cols[1]||"",ipa:cols[2]||"",meaning:cols[3]||"",english:cols[4]||""});
+  }
+  return results;
+}
+async function syncFromSheets(silent){
+  let btn=document.getElementById("syncBtn");
+  if(btn){btn.disabled=true;btn.textContent=t("syncLoadingBtn");}
+  try{
+    let res=await fetch(SHEETS_CSV_URL); if(!res.ok)throw new Error("HTTP "+res.status);
+    let text=await res.text(); let imported=parseTSV(text);
+    if(imported.length===0)throw new Error("no data");
+    let mergeMode=document.querySelector('input[name="importMode"]:checked')?.value||"merge"; let msg="";
+    if(mergeMode==="replace"){vocab=imported;saveVocab();msg="✓ "+imported.length+t("syncReplace");}
+    else{
+      let existing=new Set(vocab.map(v=>v.thai)); let added=0;
+      imported.forEach(v=>{if(!existing.has(v.thai)){vocab.push(v);added++;}});
+      saveVocab(); msg="✓ "+added+t("syncMerge1")+(imported.length-added)+t("syncMerge2");
+    }
+    try{localStorage.setItem(SYNC_KEY,Date.now().toString());}catch(e){}
+    updateSyncStatus(); if(!silent)showImportMsg(msg,true);
+  }catch(err){ if(!silent)showImportMsg(t("syncFailPrefix")+err.message,false); }
+  finally{ if(btn){btn.disabled=false;btn.textContent=t("syncBtn");} }
+}
+
+// ── Init ──
+function initLang() {
+  let saved = localStorage.getItem(LANG_KEY);
+  if(saved) { uiLang = saved; }
+  else { uiLang = isGermanDevice() ? "th" : "en"; }
+  applyUILang();
+}
+
+initDark();
+initLang();
+updateSyncStatus();
+updateTotalStatsDisplay();
+syncFromSheets(true);
+restartSession();
+if(isAndroid()) showAndroidPopup();
+</script>
+</body>
+</html>
