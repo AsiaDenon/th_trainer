@@ -270,7 +270,10 @@
       <button class="btn" style="margin-left:8px;" onclick="restartWrong()" id="doneWrongBtn">Nur falsche wiederholen</button>
     </div>
     <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
-      <div style="font-size:12px; color:var(--text3); margin-bottom:8px;" id="totalStatsLabel">Gesamtstatistik (alle Sessions)</div>
+      <div style="font-size:12px; color:var(--text3); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <span id="totalStatsLabel">Gesamtstatistik (alle Sessions)</span>
+        <span id="versionInfo"></span>
+      </div>
       <div class="total-stats">
         <span class="badge badge-green" id="totalKnown">✓ Gesamt: 0</span>
         <span class="badge badge-red" id="totalUnknown">✗ Gesamt: 0</span>
@@ -376,7 +379,6 @@
       </div>
       <p class="storage-info counter-status-line" id="counterStatus"></p>
     </div>
-    <p class="storage-info" id="versionInfo"></p>
   </div>
 </div>
 
@@ -761,6 +763,7 @@ function applyUILang() {
   document.getElementById("tabBtn-add").textContent = t("tabAdd");
   document.getElementById("tabBtn-import").textContent = t("tabImport");
   document.getElementById("tabBtn-download").textContent = t("tabDownload");
+  document.getElementById("versionInfo").style.display = uiLang === "en" ? "none" : "inline";
 
   // Mode select options — order differs per UI language
   let modeSel = document.getElementById("modeSelect");
