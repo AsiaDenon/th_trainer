@@ -113,6 +113,7 @@
   .digit-svg { width: 38px; height: 60px; }
   .digit-seg { fill: var(--seg-off, #2a2a2a); transition: fill 0.15s; }
   .digit-seg.on { fill: var(--seg-on, #cf2b2b); }
+  .digit-svg.digit-leading .digit-seg.on { fill: var(--seg-off, #2a2a2a); }
   body:not(.dark) .digit-seg { --seg-off: #d8d0c8; --seg-on: #c81e1e; }
   body.dark .digit-seg { --seg-off: #262626; --seg-on: #ff4d4d; }
   @media (max-width: 480px) {
@@ -926,10 +927,11 @@ const SEGMENT_MAP = {
   "0":"abcdef","1":"bc","2":"abged","3":"abgcd","4":"fgbc",
   "5":"afgcd","6":"afgedc","7":"abc","8":"abcdefg","9":"abcdfg"
 };
-function digitSVG(d) {
+function digitSVG(d, isLeading) {
   let segs = SEGMENT_MAP[d] || "";
   let on = (s) => segs.includes(s) ? "on" : "";
-  return `<svg class="digit-svg" viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
+  let leadingClass = isLeading ? " digit-leading" : "";
+  return `<svg class="digit-svg${leadingClass}" viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
     <polygon class="digit-seg ${on('a')}" points="12,6 48,6 42,12 18,12"/>
     <polygon class="digit-seg ${on('b')}" points="50,8 56,14 50,48 44,44 44,16"/>
     <polygon class="digit-seg ${on('c')}" points="50,52 56,58 50,92 44,86 44,58"/>
@@ -942,8 +944,13 @@ function digitSVG(d) {
 function renderCounterDigits(n) {
   let str = String(n);
   while(str.length < 7) str = "0" + str;
+  // The first non-zero digit starts the "real" number; everything before it
+  // is a pure placeholder and should render dimmed. If the value is 0, only
+  // the very last digit counts as the real number so something always lights up.
+  let firstSignificant = str.search(/[1-9]/);
+  if(firstSignificant === -1) firstSignificant = str.length - 1;
   let el = document.getElementById("counterDigits");
-  if(el) el.innerHTML = str.split("").map(digitSVG).join("");
+  if(el) el.innerHTML = str.split("").map((d, i) => digitSVG(d, i < firstSignificant)).join("");
 }
 // Renders the status line below the digits: the "since" date on success,
 // or the unavailable notice on error. The two are mutually exclusive.
