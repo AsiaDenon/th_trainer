@@ -118,6 +118,21 @@
   .digit-svg.digit-leading .digit-seg.on { fill: var(--seg-off, #2a2a2a); }
   body:not(.dark) .digit-seg { --seg-off: #d8d0c8; --seg-on: #c81e1e; }
   body.dark .digit-seg { --seg-off: #262626; --seg-on: #ff4d4d; }
+  /* ── Gästebuch ── */
+  #gbFormWrap textarea { width: 100%; font-size: 14px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border2); background: var(--input-bg); color: var(--text); outline: none; resize: vertical; font-family: inherit; margin-top: 8px; }
+  #gbFormWrap textarea:focus { border-color: var(--text3); }
+  #gbFormWrap input[type=text] { margin-top: 8px; }
+  .gb-charcount { font-size: 11px; color: var(--text4); text-align: right; margin-top: 4px; }
+  .gb-check-label { display: block; font-size: 12px; color: var(--text3); margin-top: 14px; margin-bottom: 0; }
+  #gbSubmitBtn { margin-top: 14px; }
+  .gb-entry { border-top: 1px solid var(--border); padding: 12px 0; }
+  .gb-entry:first-child { border-top: none; }
+  .gb-entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .gb-entry-name { font-weight: 500; font-size: 13px; }
+  .gb-entry-date { font-size: 11px; color: var(--text4); white-space: nowrap; }
+  .gb-entry-text { font-size: 13px; color: var(--text2); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .gb-empty { font-size: 12px; color: var(--text4); text-align: center; padding: 10px 0; }
+  #gbList { margin-top: 16px; }
   @media (max-width: 480px) {
     .app { padding: 12px; }
     #cardFront { font-size: 32px; }
@@ -379,6 +394,20 @@
       </div>
       <p class="storage-info counter-status-line" id="counterStatus"></p>
     </div>
+
+    <div class="dl-box">
+      <h3 id="gbTitle">📖 Gästebuch</h3>
+      <div id="gbFormWrap">
+        <input type="text" id="gbName" maxlength="60" placeholder="Dein Name">
+        <textarea id="gbText" maxlength="300" rows="3" placeholder="Deine Nachricht (max. 300 Zeichen)" oninput="updateGbCharCount()"></textarea>
+        <div class="gb-charcount" id="gbCharCount">0 / 300</div>
+        <label class="gb-check-label" id="gbCheckLabel" for="gbCheck">Schreibe "Siam" um zu bestätigen, dass du kein Roboter bist:</label>
+        <input type="text" id="gbCheck" maxlength="20" autocomplete="off">
+        <button class="btn btn-primary" id="gbSubmitBtn" onclick="submitGuestbookEntry()">Eintragen</button>
+        <p class="storage-info" id="gbMsg" style="display:none;"></p>
+      </div>
+      <div id="gbList"></div>
+    </div>
   </div>
 </div>
 
@@ -433,6 +462,8 @@ const I18N = {
     dlBtn1: "⬇ Jetzt Offline-Paket aktualisieren",
     dlTitle2: "📄 Nur CSV herunterladen", dlText2: "Exportiert deine aktuellen Vokabeln als CSV-Datei.", dlBtn2: "⬇ CSV exportieren",
     counterTitle: "Besucherzähler",
+    gbTitle: "📖 Gästebuch", gbNamePlaceholder: "Dein Name", gbTextPlaceholder: "Deine Nachricht (max. 300 Zeichen)",
+    gbCheckLabel: 'Schreibe "Siam" um zu bestätigen, dass du kein Roboter bist:', gbSubmitBtn: "Eintragen",
     persistLabel: "💾 Persistent Storage:",
     apTitle: "📥 Offline-Version herunterladen",
     apText: "Lade die aktuelle Version mit allen deinen Vokabeln als HTML und CSV herunter, um sie offline zu nutzen.",
@@ -485,6 +516,8 @@ const I18N = {
     dlBtn1: "⬇ Update offline package now",
     dlTitle2: "📄 Download CSV only", dlText2: "Exports your current vocabulary as a CSV file.", dlBtn2: "⬇ Export CSV",
     counterTitle: "Visitor Counter",
+    gbTitle: "📖 Guestbook", gbNamePlaceholder: "Your name", gbTextPlaceholder: "Your message (max. 300 characters)",
+    gbCheckLabel: 'Type "Siam" to confirm you\'re human:', gbSubmitBtn: "Submit",
     persistLabel: "💾 Persistent Storage:",
     apTitle: "📥 Download offline version",
     apText: "Download the current version with all your vocabulary as HTML and CSV to use it offline.",
@@ -832,6 +865,11 @@ function applyUILang() {
   document.getElementById("dlText2").textContent = t("dlText2");
   document.getElementById("dlBtn2").textContent = t("dlBtn2");
   document.getElementById("counterTitle").textContent = t("counterTitle");
+  document.getElementById("gbTitle").textContent = t("gbTitle");
+  document.getElementById("gbName").placeholder = t("gbNamePlaceholder");
+  document.getElementById("gbText").placeholder = t("gbTextPlaceholder");
+  document.getElementById("gbCheckLabel").textContent = t("gbCheckLabel");
+  document.getElementById("gbSubmitBtn").textContent = t("gbSubmitBtn");
   refreshCounterStatusText();
   updateNextReminderInfo();
   document.getElementById("persistLabel").textContent = t("persistLabel");
@@ -1001,6 +1039,133 @@ function loadVisitorCounter() {
     });
 }
 
+// ── Gästebuch ──
+// Nach Einrichtung des Google Apps Script (siehe Anleitung) die Web-App-URL hier eintragen:
+const GUESTBOOK_URL = "GUESTBOOK_URL_PLACEHOLDER";
+let guestbookFetched = false;
+
+// Damerau-Levenshtein-Distanz für die Tippfehler-tolerante "Siam"-Prüfung
+// (zählt vertauschte Nachbarbuchstaben, z.B. "Saim", als einen einzigen Fehler)
+function damerauLevenshtein(a, b) {
+  a = a.toLowerCase(); b = b.toLowerCase();
+  let m = a.length, n = b.length;
+  let d = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+  for(let i = 0; i <= m; i++) d[i][0] = i;
+  for(let j = 0; j <= n; j++) d[0][j] = j;
+  for(let i = 1; i <= m; i++) {
+    for(let j = 1; j <= n; j++) {
+      let cost = a[i-1] === b[j-1] ? 0 : 1;
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + cost);
+      if(i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]) {
+        d[i][j] = Math.min(d[i][j], d[i-2][j-2] + 1);
+      }
+    }
+  }
+  return d[m][n];
+}
+// Akzeptiert "Siam", "Sian" und ähnliche Tippvarianten (Distanz <= 1), case-insensitive
+function isSiamAnswer(value) {
+  let v = (value || "").trim();
+  if(!v) return false;
+  return damerauLevenshtein(v, "siam") <= 1;
+}
+
+function escapeHtml(str) {
+  let div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function updateGbCharCount() {
+  let el = document.getElementById("gbText");
+  let count = el ? el.value.length : 0;
+  document.getElementById("gbCharCount").textContent = count + " / 300";
+}
+
+function renderGuestbookEntries(entries) {
+  let list = document.getElementById("gbList");
+  if(!entries || entries.length === 0) {
+    list.innerHTML = '<p class="gb-empty" id="gbEmptyMsg">' + (uiLang === "en" ? "No entries yet — be the first!" : "Noch keine Einträge — sei der Erste!") + '</p>';
+    return;
+  }
+  list.innerHTML = entries.map(e => {
+    let name = escapeHtml(e.name || "");
+    let text = escapeHtml(e.text || "");
+    let when = escapeHtml([e.date, e.time].filter(Boolean).join(" · "));
+    return '<div class="gb-entry"><div class="gb-entry-head"><span class="gb-entry-name">' + name + '</span><span class="gb-entry-date">' + when + '</span></div><div class="gb-entry-text">' + text + '</div></div>';
+  }).join("");
+}
+
+function loadGuestbookEntries() {
+  if(guestbookFetched) return;
+  guestbookFetched = true;
+  let list = document.getElementById("gbList");
+  list.innerHTML = '<p class="gb-empty">' + (uiLang === "en" ? "Loading…" : "Lädt…") + '</p>';
+  fetch(GUESTBOOK_URL + "?action=list", { cache: "no-store" })
+    .then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(data => {
+      if(!data || !Array.isArray(data.entries)) throw new Error("unexpected_shape");
+      renderGuestbookEntries(data.entries);
+    })
+    .catch((err) => {
+      console.warn("Guestbook load failed:", err);
+      guestbookFetched = false; // allow retry on next visit
+      list.innerHTML = '<p class="gb-empty">' + (uiLang === "en" ? "Could not load entries right now." : "Einträge konnten nicht geladen werden.") + '</p>';
+    });
+}
+
+function showGbMessage(text, isError) {
+  let el = document.getElementById("gbMsg");
+  el.textContent = text;
+  el.style.display = "block";
+  el.style.color = isError ? "#d6493e" : "var(--text3)";
+}
+
+function submitGuestbookEntry() {
+  let nameEl = document.getElementById("gbName");
+  let textEl = document.getElementById("gbText");
+  let checkEl = document.getElementById("gbCheck");
+  let btn = document.getElementById("gbSubmitBtn");
+
+  let name = nameEl.value.trim();
+  let text = textEl.value.trim();
+
+  if(!name || !text) {
+    showGbMessage(uiLang === "en" ? "Please fill in name and message." : "Bitte Name und Nachricht ausfüllen.", true);
+    return;
+  }
+  if(text.length > 300) {
+    showGbMessage(uiLang === "en" ? "Message is too long (max. 300 characters)." : "Nachricht ist zu lang (max. 300 Zeichen).", true);
+    return;
+  }
+  if(!isSiamAnswer(checkEl.value)) {
+    showGbMessage(uiLang === "en" ? 'Please type "Siam" to confirm you\'re human.' : 'Bitte "Siam" eingeben, um zu bestätigen, dass du kein Roboter bist.', true);
+    return;
+  }
+
+  btn.disabled = true;
+  showGbMessage(uiLang === "en" ? "Sending…" : "Wird gesendet…", false);
+
+  let url = GUESTBOOK_URL + "?action=add&name=" + encodeURIComponent(name) + "&text=" + encodeURIComponent(text);
+  fetch(url, { cache: "no-store" })
+    .then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(data => {
+      if(data && data.error) throw new Error(data.error);
+      nameEl.value = "";
+      textEl.value = "";
+      checkEl.value = "";
+      updateGbCharCount();
+      showGbMessage(uiLang === "en" ? "Thank you for your entry!" : "Danke für deinen Eintrag!", false);
+      guestbookFetched = false; // force reload to include the new entry
+      loadGuestbookEntries();
+    })
+    .catch((err) => {
+      console.warn("Guestbook submit failed:", err);
+      showGbMessage(uiLang === "en" ? "Could not send entry. Please try again later." : "Eintrag konnte nicht gesendet werden. Bitte später erneut versuchen.", true);
+    })
+    .finally(() => { btn.disabled = false; });
+}
+
 function downloadPackage() {
   try { localStorage.setItem(DOWNLOAD_KEY, Date.now().toString()); } catch(e) {}
   updateNextReminderInfo();
@@ -1042,7 +1207,7 @@ function setTab(tabName, el) {
   if(el) el.classList.add("active");
   if(tabName==="list") renderList();
   if(tabName==="download") { requestPersistentStorage(); updateNextReminderInfo(); }
-  if(tabName==="counter") loadVisitorCounter();
+  if(tabName==="counter") { loadVisitorCounter(); loadGuestbookEntries(); }
 }
 
 // ── Spaced Repetition ──
