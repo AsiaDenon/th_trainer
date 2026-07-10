@@ -105,7 +105,14 @@ function pinTranslation(){
   openPopup('addPopup');
 }
 async function detectLanguageViaWebApp(text){try{const url=SHEET_WRITE_URL+'?action=detect&text='+encodeURIComponent(text);const resp=await fetch(url);if(resp.ok){const data=await resp.json();if(data.lang)return data.lang;}}catch(e){}return detectLanguageFallback(text);}
-function detectLanguageFallback(text){if(!text||!text.trim())return'en';const t=text.trim();if(/[\u0E00-\u0E7F]/.test(t))return'th';const dePattern=/[äöüßÄÖÜ]|\b(der|die|das|und|ist|ein|eine|nicht|mit|auf|für|von|zu|im|am|um|über|nach|vor|bei|sehr|auch|hier|dort|oder|aber|weil|wenn|dass|kann|muss|soll|will|haben|werden|sind|war|ware|würde|könnte|möchte|hallo|guten|morgen|abend|danke|bitte|entschuldigung|ja|nein|vielleicht|schon|mal|doch|einfach|machen|tun|sagen|gehen|kommen|sehen|wissen|können|mögen|dürfen|sollen|wollen|müssen)\b/i;if(dePattern.test(t))return'de';return'en';}
+function detectLanguageFallback(text){
+  if(!text||!text.trim())return'en';
+  const t=text.trim();
+  if(/[\u0E00-\u0E7F]/.test(t))return'th';
+  const dePattern=/[äöüßÄÖÜ]|\b(der|die|das|und|ist|ein|eine|nicht|mit|auf|für|von|zu|im|am|um|über|nach|vor|bei|sehr|auch|hier|dort|oder|aber|weil|wenn|dass|kann|muss|soll|will|haben|werden|sind|war|ware|würde|könnte|möchte|hallo|guten|morgen|abend|danke|bitte|entschuldigung|ja|nein|vielleicht|schon|mal|doch|einfach|machen|tun|sagen|gehen|kommen|sehen|wissen|können|mögen|dürfen|sollen|wollen|müssen|dein|deine|deinen|deinem|deiner|mein|meine|meinen|meinem|meiner|unser|unsere|unseren|unserem|unserer|euer|eure|euren|eurem|eurer|ihr|ihre|ihren|ihrem|ihrer|Ihr|Ihre|Ihren|Ihrem|Ihrer|kein|keine|keinen|keinem|keiner)\b/i;
+  if(dePattern.test(t))return'de';
+  return'en';
+}
 function getTranslatorTargets(sourceLang){if(sourceLang==='th')return{targetA:'en',targetB:'de'};if(sourceLang==='de')return{targetA:'th',targetB:'en'};return{targetA:'th',targetB:'de'};}
 async function translateViaWebApp(text,targetLang){const url=SHEET_WRITE_URL+'?action=translate&text='+encodeURIComponent(text)+'&target='+targetLang;try{const resp=await fetch(url);if(!resp.ok)throw new Error('HTTP '+resp.status);const data=await resp.json();return data.translation||text;}catch(e){return text;}}
 function startTranslatorTimer(){if(translatorInterval)clearInterval(translatorInterval);translatorStartTime=performance.now();$("#timerA").style.display='block';$("#timerB").style.display='block';const targetNames={th:'Thai',de:'Deutsch',en:'Englisch'};const labelA=targetNames[translatorCurrent.targetA]||'A';const labelB=targetNames[translatorCurrent.targetB]||'B';$("#timerA").textContent='0.000s - '+labelA;$("#timerB").textContent='0.000s - '+labelB;translatorInterval=setInterval(()=>{const elapsed=(performance.now()-translatorStartTime)/1000;const labelA2=targetNames[translatorCurrent.targetA]||'A';const labelB2=targetNames[translatorCurrent.targetB]||'B';$("#timerA").textContent=elapsed.toFixed(3)+'s - '+labelA2;$("#timerB").textContent=elapsed.toFixed(3)+'s - '+labelB2;},100);}
@@ -123,12 +130,7 @@ async function runTranslator(){
     return;
   }
   stopTranslatorTimer();
-  let sourceLang = await detectLanguageViaWebApp(text);
-  // Doppelte Prüfung: wenn API "en" meldet, lokalen Fallback erzwingen
-  if (!sourceLang || sourceLang === 'en') {
-    const fallback = detectLanguageFallback(text);
-    if (fallback !== 'en') sourceLang = fallback;
-  }
+  const sourceLang = await detectLanguageViaWebApp(text);  // nutzt bereits die verbesserte Fallback-Funktion
   const{targetA,targetB}=getTranslatorTargets(sourceLang);
   const langNames={th:'Thai',de:'Deutsch',en:'Englisch'};
   $("#translatorDetected").textContent='Erkannt: '+(langNames[sourceLang]||sourceLang);
