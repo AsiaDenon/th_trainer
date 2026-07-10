@@ -122,9 +122,9 @@ async function sendJournalEntry(inputText,sourceLang,output1,output2){
   const langCode={th:'TH',de:'DE',en:'EN'}[sourceLang]||'XX';
   const now=new Date();
   const ts=String(now.getDate()).padStart(2,'0')+'.'+String(now.getMonth()+1).padStart(2,'0')+'.'+now.getFullYear()+' - '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const params=`action=journal_add&ts=${encodeURIComponent(ts)}&lang=${langCode}&input=${encodeURIComponent(inputText)}&out1=${encodeURIComponent(output1)}&out2=${encodeURIComponent(output2)}`;
-  const url=SHEET_WRITE_URL+'&'+params;
-  try{await fetch(url,{method:'POST'});}catch(e){}
+  const params=`ts=${encodeURIComponent(ts)}&lang=${langCode}&input=${encodeURIComponent(inputText)}&out1=${encodeURIComponent(output1)}&out2=${encodeURIComponent(output2)}`;
+  const url=SHEET_WRITE_URL+'?action=journal_add&'+params;
+  try{await fetch(url);}catch(e){}
 }
 async function loadJournalEntries(){
   const list=$("#journalList");
