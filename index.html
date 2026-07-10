@@ -86,7 +86,7 @@ function startSyncAnimation(){if(syncAnimationInterval)clearInterval(syncAnimati
 function stopSyncAnimation(){if(syncAnimationInterval){clearInterval(syncAnimationInterval);syncAnimationInterval=null;}if(syncTimerInterval){clearInterval(syncTimerInterval);syncTimerInterval=null;}const btn=$("#syncBtn");btn.textContent=t('syncBtn');const timerEl=$("#syncTimer");timerEl.style.display='none';}
 async function syncFromSheets(silent,forceReplace=!1){startSyncAnimation();const b=$("#syncBtn");b.disabled=true;try{const url=SHEET_WRITE_URL+"?action=export";const resp=await fetch(url);if(!resp.ok)throw new Error("HTTP "+resp.status);const imp=await resp.json();if(!Array.isArray(imp))throw new Error("Unerwartetes Datenformat");if(imp.length===0)throw new Error("Keine Daten");let mode;if(forceReplace){mode="replace";}else{mode=document.querySelector('input[name="importMode"]:checked')?.value||"merge";}let msg="";if(mode==="replace"){vocab=imp;saveVocab();msg="✓ "+imp.length+t("syncReplace");}else{const exist=new Set(vocab.map(v=>v.thai));let added=0;imp.forEach(v=>{if(!exist.has(v.thai)){vocab.push(v);added++;}});saveVocab();msg="✓ "+added+t("syncMerge1")+(imp.length-added)+t("syncMerge2");}try{localStorage.setItem(SYNC_KEY,Date.now().toString());}catch(e){}updateSyncStatus();if(!silent)showImportMsg(msg,true);if(forceReplace){localStorage.setItem('thai_trainer_first_run_done','1');}}catch(e){if(!silent)showImportMsg(t("syncFailPrefix")+e.message,!1);}finally{stopSyncAnimation();b.disabled=false;}}
 function initLang(){let s=localStorage.getItem(LANG_KEY);s?uiLang=s:uiLang=isGermanDevice()?"th":"en";applyUILang()}initDark();initLang();
-/* ─── Übersetzer ─── */
+/* ─── Übersetzer (mit Fehlerdiagnose) ─── */
 function updateEdgeButtons(){const label=getEdgeSpeakLabel();const ba=document.getElementById('edgeBtnA');const bb=document.getElementById('edgeBtnB');if(ba)ba.textContent=label;if(bb)bb.textContent=label;}
 function pinTranslation(){
   const {text} = translatorCurrent;
@@ -115,7 +115,7 @@ function detectLanguageFallback(text){
 function getTranslatorTargets(sourceLang){if(sourceLang==='th')return{targetA:'en',targetB:'de'};if(sourceLang==='de')return{targetA:'th',targetB:'en'};if(sourceLang==='en')return{targetA:'th',targetB:'de'};return{targetA:'en',targetB:'de'};}
 async function translateViaWebApp(text,targetLang){
   const url=SHEET_WRITE_URL+'?action=translate&text='+encodeURIComponent(text)+'&target='+targetLang;
-  try{const resp=await fetch(url);if(!resp.ok)throw new Error('HTTP '+resp.status);const data=await resp.json();if(data.error)throw new Error('api_error');return{translation:data.translation||text,detected:data.detected||'',provider:data.provider||'google',error:!1};}catch(e){return{translation:'⚠️ Übersetzung fehlgeschlagen',detected:'',provider:'error',error:!0};}
+  try{const resp=await fetch(url);if(!resp.ok)throw new Error('HTTP '+resp.status);const data=await resp.json();if(data.error)return{translation:'⚠️ Übersetzung fehlgeschlagen',detected:'',provider:data.provider||'unknown',error:!0};return{translation:data.translation||text,detected:data.detected||'',provider:data.provider||'google',error:!1};}catch(e){return{translation:'⚠️ Übersetzung fehlgeschlagen',detected:'',provider:'error',error:!0};}
 }
 function startTranslatorTimer(){
   if(translatorInterval)clearInterval(translatorInterval);
@@ -152,10 +152,12 @@ async function runTranslator(){
   const pivot=await translateViaWebApp(text,'en');
   if(myId!==translatorReqId)return;
   if(pivot.error){
-    $("#translatorDetected").textContent='⚠️ Übersetzung fehlgeschlagen';
-    translatorCurrent={text,sourceLang:'',targetA:'',targetB:'',resultA:'⚠️ Übersetzung fehlgeschlagen',resultB:'⚠️ Übersetzung fehlgeschlagen',provider:'error'};
-    $("#translatorTargetA").value='⚠️ Übersetzung fehlgeschlagen';
-    $("#translatorTargetB").value='⚠️ Übersetzung fehlgeschlagen';
+    const code = (pivot.provider==='mymemory'?'m':pivot.provider==='google'?'g':pivot.provider==='error'?'?':'?');
+    const msg = '⚠️ Übersetzung fehlgeschlagen ('+code+')';
+    $("#translatorDetected").textContent=msg;
+    translatorCurrent={text,sourceLang:'',targetA:'',targetB:'',resultA:msg,resultB:msg,provider:'error'};
+    $("#translatorTargetA").value=msg;
+    $("#translatorTargetB").value=msg;
     stopTranslatorTimer();
     renderTranslatorHearts();
     return;
