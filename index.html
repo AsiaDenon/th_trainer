@@ -111,7 +111,42 @@ async function translateViaWebApp(text,targetLang){const url=SHEET_WRITE_URL+'?a
 function startTranslatorTimer(){if(translatorInterval)clearInterval(translatorInterval);translatorStartTime=performance.now();$("#timerA").style.display='block';$("#timerB").style.display='block';const targetNames={th:'Thai',de:'Deutsch',en:'Englisch'};const labelA=targetNames[translatorCurrent.targetA]||'A';const labelB=targetNames[translatorCurrent.targetB]||'B';$("#timerA").textContent='0.000s - '+labelA;$("#timerB").textContent='0.000s - '+labelB;translatorInterval=setInterval(()=>{const elapsed=(performance.now()-translatorStartTime)/1000;const labelA2=targetNames[translatorCurrent.targetA]||'A';const labelB2=targetNames[translatorCurrent.targetB]||'B';$("#timerA").textContent=elapsed.toFixed(3)+'s - '+labelA2;$("#timerB").textContent=elapsed.toFixed(3)+'s - '+labelB2;},100);}
 function stopTranslatorTimer(){if(translatorInterval){clearInterval(translatorInterval);translatorInterval=null;}}
 function debounceTranslator(){if(translatorTimer)clearTimeout(translatorTimer);translatorTimer=setTimeout(runTranslator,400);}
-async function runTranslator(){const text=$("#translatorSource").value;if(!text.trim()){$("#translatorTargetA").value='';$("#translatorTargetB").value='';$("#translatorDetected").textContent='';translatorCurrent={text:"",sourceLang:"",targetA:"",targetB:"",resultA:"",resultB:""};renderTranslatorHearts();stopTranslatorTimer();return;}stopTranslatorTimer();const sourceLang=await detectLanguageViaWebApp(text);const{targetA,targetB}=getTranslatorTargets(sourceLang);const langNames={th:'Thai',de:'Deutsch',en:'Englisch'};$("#translatorDetected").textContent='Erkannt: '+(langNames[sourceLang]||sourceLang);translatorCurrent={text,sourceLang,targetA,targetB,resultA:'',resultB:''};startTranslatorTimer();renderTranslatorHearts();const[resA,resB]=await Promise.all([translateViaWebApp(text,targetA),translateViaWebApp(text,targetB)]);translatorCurrent.resultA=resA;translatorCurrent.resultB=resB;$("#translatorTargetA").value=resA;$("#translatorTargetB").value=resB;stopTranslatorTimer();renderTranslatorHearts();sendJournalEntry(text,sourceLang,resA,resB);}
+async function runTranslator(){
+  const text=$("#translatorSource").value;
+  if(!text.trim()){
+    $("#translatorTargetA").value='';
+    $("#translatorTargetB").value='';
+    $("#translatorDetected").textContent='';
+    translatorCurrent={text:"",sourceLang:"",targetA:"",targetB:"",resultA:"",resultB:""};
+    renderTranslatorHearts();
+    stopTranslatorTimer();
+    return;
+  }
+  stopTranslatorTimer();
+  let sourceLang = await detectLanguageViaWebApp(text);
+  // Doppelte Prüfung: wenn API "en" meldet, lokalen Fallback erzwingen
+  if (!sourceLang || sourceLang === 'en') {
+    const fallback = detectLanguageFallback(text);
+    if (fallback !== 'en') sourceLang = fallback;
+  }
+  const{targetA,targetB}=getTranslatorTargets(sourceLang);
+  const langNames={th:'Thai',de:'Deutsch',en:'Englisch'};
+  $("#translatorDetected").textContent='Erkannt: '+(langNames[sourceLang]||sourceLang);
+  translatorCurrent={text,sourceLang,targetA,targetB,resultA:'',resultB:''};
+  startTranslatorTimer();
+  renderTranslatorHearts();
+  const[resA,resB]=await Promise.all([
+    translateViaWebApp(text,targetA),
+    translateViaWebApp(text,targetB)
+  ]);
+  translatorCurrent.resultA=resA;
+  translatorCurrent.resultB=resB;
+  $("#translatorTargetA").value=resA;
+  $("#translatorTargetB").value=resB;
+  stopTranslatorTimer();
+  renderTranslatorHearts();
+  sendJournalEntry(text,sourceLang,resA,resB);
+}
 function renderTranslatorHearts(){const rowA=$("#heartsRowA"),rowB=$("#heartsRowB");if(!rowA||!rowB)return;rowA.innerHTML='';rowB.innerHTML='';if(uiLang==='en'||!googleApiKey)return;const isThaiA=translatorCurrent.targetA==='th'&&translatorCurrent.resultA;const isThaiB=translatorCurrent.targetB==='th'&&translatorCurrent.resultB;if(isThaiA){GOOGLE_VOICES.forEach((v,i)=>{const btn=document.createElement('button');btn.className='sq-btn';btn.innerHTML=HEART_SYMBOLS[i]||'❤️';btn.title=v;btn.onclick=()=>googleSpeak(v,translatorCurrent.resultA);rowA.appendChild(btn);});}if(isThaiB){GOOGLE_VOICES.forEach((v,i)=>{const btn=document.createElement('button');btn.className='sq-btn';btn.innerHTML=HEART_SYMBOLS[i]||'❤️';btn.title=v;btn.onclick=()=>googleSpeak(v,translatorCurrent.resultB);rowB.appendChild(btn);});}}
 function speakTranslatorText(field){const text=field==='A'?translatorCurrent.resultA:translatorCurrent.resultB;if(!translatorCurrent.text||!translatorCurrent.text.trim()){openPopup('listenHintPopup');return;}if(!text)return;const u=new SpeechSynthesisUtterance(text);const langMap={de:'de-DE',en:'en-US',th:'th-TH'};u.lang=langMap[field==='A'?translatorCurrent.targetA:translatorCurrent.targetB]||'th-TH';if(availableVoices.length>0){const v=availableVoices.find(v=>v.lang.startsWith(u.lang.substring(0,2)));if(v)u.voice=v;}window.speechSynthesis.speak(u);}
 async function speakTranslatorEdge(field){const text=field==='A'?translatorCurrent.resultA:translatorCurrent.resultB;if(!translatorCurrent.text||!translatorCurrent.text.trim()){openPopup('listenHintPopup');return;}if(!text||!isEdge()){openPopup('edgeHintPopup');return;}if(edgeWs)return;const targetLang=field==='A'?translatorCurrent.targetA:translatorCurrent.targetB;const btn=document.getElementById(field==='A'?'edgeBtnA':'edgeBtnB');if(btn)btn.disabled=true;try{const sec=await edgeGenSec();const id=uuid();edgeWs=new WebSocket(`wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC=${sec}&Sec-MS-GEC-Version=1-131.0.2903.51&ConnectionId=${id}`);edgeWs.binaryType='arraybuffer';let timeout=setTimeout(()=>{edgeWs.close();edgeWs=null;if(btn)btn.disabled=false;},10000);edgeAudioChunks=[];edgeWs.onopen=()=>{const now=new Date().toString();edgeWs.send(`X-Timestamp:${now}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`);const rid=uuid();const langMap={de:'de-DE-ConradNeural',en:'en-US-ChristopherNeural',th:'th-TH-NiwatNeural'};const voiceName=langMap[targetLang]||'en-US-ChristopherNeural';const ssml=`<speak version='1.0' xml:lang='${targetLang}'><voice name='${voiceName}'><prosody rate='0%' pitch='0%'>${escXml(text)}</prosody></voice></speak>`;edgeWs.send(`X-RequestId:${rid}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${now}Z\r\nPath:ssml\r\n\r\n${ssml}`);};edgeWs.onmessage=e=>{if(typeof e.data==='string'){if(e.data.includes('Path:turn.end')){clearTimeout(timeout);let a=new Audio();a.src=URL.createObjectURL(new Blob(edgeAudioChunks,{type:'audio/mpeg'}));a.play();edgeWs=null;if(btn)btn.disabled=false;}}else{const dv=new DataView(e.data);const hl=dv.getUint16(0,false);const hb=new Uint8Array(e.data,2,hl);if(new TextDecoder().decode(hb).includes('Path:audio')){edgeAudioChunks.push(e.data.slice(2+hl));}}};edgeWs.onerror=edgeWs.onclose=()=>{clearTimeout(timeout);edgeWs=null;if(btn)btn.disabled=false;};}catch(e){edgeWs=null;if(btn)btn.disabled=false;}}
