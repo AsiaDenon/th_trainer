@@ -70,7 +70,7 @@ function uuid(){return crypto.randomUUID().replace(/-/g,"")}
 function escXml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 async function edgeGenSec(){const e=11644473600;let t=Date.now()/1000+e;t-=t%300;t*=1e9/100;const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(Math.floor(t).toString()+'6A5AA1D4EAFF4E9FB37E23D68491D6F4'));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase()}
 async function edgeSpeak(){if(!current)return;if(!isEdge()){openPopup('edgeHintPopup');return}if(edgeWs)return;const btn=$("#edgeSpeakBtn");btn.disabled=true;try{const sec=await edgeGenSec();const id=uuid();edgeWs=new WebSocket(`wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC=${sec}&Sec-MS-GEC-Version=1-131.0.2903.51&ConnectionId=${id}`);edgeWs.binaryType='arraybuffer';let timeout=setTimeout(()=>{edgeWs.close();btn.disabled=false;edgeWs=null},10000);edgeAudioChunks=[];edgeWs.onopen=()=>{const now=new Date().toString();edgeWs.send(`X-Timestamp:${now}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`);const rid=uuid();const txt=current.thai;const ssml=`<speak version='1.0' xml:lang='th-TH'><voice name='th-TH-NiwatNeural'><prosody rate='0%' pitch='0%'>${escXml(txt)}</prosody></voice></speak>`;edgeWs.send(`X-RequestId:${rid}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${now}Z\r\nPath:ssml\r\n\r\n${ssml}`)};edgeWs.onmessage=e=>{if(typeof e.data==='string'){if(e.data.includes('Path:turn.end')){clearTimeout(timeout);let a=new Audio();a.src=URL.createObjectURL(new Blob(edgeAudioChunks,{type:'audio/mpeg'}));a.play();btn.disabled=false;edgeWs=null}}else{const dv=new DataView(e.data);const hl=dv.getUint16(0,false);const hb=new Uint8Array(e.data,2,hl);if(new TextDecoder().decode(hb).includes('Path:audio')){edgeAudioChunks.push(e.data.slice(2+hl))}}};edgeWs.onerror=edgeWs.onclose=()=>{clearTimeout(timeout);btn.disabled=false;edgeWs=null}}catch(e){btn.disabled=false;edgeWs=null}}
-function renderHeartButtons(){const container=$("#heartButtons");if(!container)return;container.innerHTML='';if(uiLang==='en')return;if(googleApiKey){GOOGLE_VOICES.forEach((v,i)=>{const btn=document.createElement('button');btn.className='btn btn-h32';btn.style.padding='7px 10px';btn.style.minWidth='auto';btn.style.width='auto';btn.innerHTML=HEART_SYMBOLS[i]||'❤️';btn.title=v;let cooldown=false;btn.onclick=()=>{if(cooldown)return;cooldown=true;btn.style.opacity='0.5';googleSpeak(v);setTimeout(()=>{cooldown=false;btn.style.opacity='1'},1000)};container.appendChild(btn)});requestAnimationFrame(()=>alignActionButtons());}}
+function renderHeartButtons(){const container=$("#heartButtons");if(!container)return;container.innerHTML='';if(uiLang==='en')return;if(googleApiKey){GOOGLE_VOICES.forEach((v,i)=>{const btn=document.createElement('button');btn.className='btn btn-h32';btn.style.padding='7px 10px';btn.style.minWidth='auto';btn.style.width='auto';btn.style.lineHeight='1';btn.innerHTML=HEART_SYMBOLS[i]||'❤️';btn.title=v;let cooldown=false;btn.onclick=()=>{if(cooldown)return;cooldown=true;btn.style.opacity='0.5';googleSpeak(v);setTimeout(()=>{cooldown=false;btn.style.opacity='1'},1000)};container.appendChild(btn)});requestAnimationFrame(()=>alignActionButtons());}}
 async function googleSpeak(voiceName,textOverride){if(!googleApiKey)return;const text=textOverride||(current?current.thai:'');if(!text)return;const url=`https://texttospeech.googleapis.com/v1/text:synthesize?key=${googleApiKey}`;const payload={input:{text},voice:{languageCode:'th-TH',name:`th-TH-Chirp3-HD-${voiceName}`},audioConfig:{audioEncoding:'MP3'}};try{const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)throw new Error('API error');const data=await res.json();if(data.audioContent){const audio=new Audio('data:audio/mp3;base64,'+data.audioContent);audio.play()}}catch(e){openPopup('apiErrorPopup')}}
 function openFilterPopup(){tempFilters=[...activeFilters];renderFilterCheckboxes();openPopup('filterPopup');}
 function renderFilterCheckboxes(){const container=$("#filterCheckboxes");const categories=[...new Set(vocab.map(v=>v.filter).filter(Boolean))].filter(c=>c!=='keine').sort();container.innerHTML=categories.map(cat=>`<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer"><input type="checkbox" ${tempFilters.includes(cat)?"checked":""} onchange="toggleTempFilter('${cat}',this.checked)"><span>${cat}</span></label>`).join("")+"<br>";}
@@ -115,7 +115,11 @@ function detectLanguageFallback(text){
 function getTranslatorTargets(sourceLang){if(sourceLang==='th')return{targetA:'en',targetB:'de'};if(sourceLang==='de')return{targetA:'th',targetB:'en'};if(sourceLang==='en')return{targetA:'th',targetB:'de'};return{targetA:'en',targetB:'de'};}
 async function translateViaWebApp(text,targetLang){
   const url=SHEET_WRITE_URL+'?action=translate&text='+encodeURIComponent(text)+'&target='+targetLang+'&provider='+translateProvider;
-  try{const resp=await fetch(url);if(!resp.ok)throw new Error('HTTP '+resp.status);const data=await resp.json();if(data.error)return{translation:'⚠️ Übersetzung fehlgeschlagen',detected:'',provider:data.provider||'unknown',error:!0};return{translation:data.translation||text,detected:data.detected||'',provider:data.provider||'google',error:!1};}catch(e){return{translation:'⚠️ Übersetzung fehlgeschlagen',detected:'',provider:'error',error:!0};}
+  try{const resp=await fetch(url);if(!resp.ok)throw new Error('HTTP '+resp.status);const data=await resp.json();if(data.error){
+    let debug='';
+    if(data.debug) debug = ' ('+data.debug.substring(0,50)+'...)';
+    return{translation:'⚠️ Übersetzung fehlgeschlagen'+debug,detected:'',provider:data.provider||'unknown',error:!0};
+  }return{translation:data.translation||text,detected:data.detected||'',provider:data.provider||'google',error:!1};}catch(e){return{translation:'⚠️ Übersetzung fehlgeschlagen',detected:'',provider:'error',error:!0};}
 }
 function startTranslatorTimer(){
   if(translatorInterval)clearInterval(translatorInterval);
@@ -152,12 +156,10 @@ async function runTranslator(){
   const pivot=await translateViaWebApp(text,'en');
   if(myId!==translatorReqId)return;
   if(pivot.error){
-    const code = (pivot.provider==='mymemory'?'m':pivot.provider==='google'?'g':pivot.provider==='error'?'?':'?');
-    const msg = '⚠️ Übersetzung fehlgeschlagen ('+code+')';
-    $("#translatorDetected").textContent=msg;
-    translatorCurrent={text,sourceLang:'',targetA:'',targetB:'',resultA:msg,resultB:msg,provider:'error'};
-    $("#translatorTargetA").value=msg;
-    $("#translatorTargetB").value=msg;
+    $("#translatorDetected").textContent=pivot.translation;
+    translatorCurrent={text,sourceLang:'',targetA:'',targetB:'',resultA:pivot.translation,resultB:pivot.translation,provider:'error'};
+    $("#translatorTargetA").value=pivot.translation;
+    $("#translatorTargetB").value=pivot.translation;
     stopTranslatorTimer();
     renderTranslatorHearts();
     return;
@@ -190,7 +192,7 @@ function renderTranslatorHearts(){
   if(uiLang==='en'||!googleApiKey)return;
   const isThaiA=translatorCurrent.targetA==='th'&&translatorCurrent.resultA;
   const isThaiB=translatorCurrent.targetB==='th'&&translatorCurrent.resultB;
-  const createBtn=(v,i,text)=>{const btn=document.createElement('button');btn.className='btn btn-h32';btn.style.flex='1';btn.style.minWidth='0';btn.innerHTML=HEART_SYMBOLS[i]||'❤️';btn.title=v;btn.onclick=()=>googleSpeak(v,text);return btn;};
+  const createBtn=(v,i,text)=>{const btn=document.createElement('button');btn.className='btn btn-h32';btn.style.flex='1';btn.style.minWidth='0';btn.style.lineHeight='1';btn.innerHTML=HEART_SYMBOLS[i]||'❤️';btn.title=v;btn.onclick=()=>googleSpeak(v,text);return btn;};
   if(isThaiA){GOOGLE_VOICES.forEach((v,i)=>rowA.appendChild(createBtn(v,i,translatorCurrent.resultA)));}
   if(isThaiB){GOOGLE_VOICES.forEach((v,i)=>rowB.appendChild(createBtn(v,i,translatorCurrent.resultB)));}
 }
@@ -209,14 +211,9 @@ function alignActionButtons(){
   if(!again||!known||!current) return;
   const heartContainer=$("#heartButtons");
   if(!heartContainer||heartContainer.children.length===0) return;
-  const firstHeart=heartContainer.children[0];
-  const actionRow=$("#actionRow");
-  if(!actionRow||!firstHeart) return;
-  const actionRect=actionRow.getBoundingClientRect();
-  const heartRect=firstHeart.getBoundingClientRect();
-  const availableWidth=heartRect.left-actionRect.left-6; // gap nach known
-  if(availableWidth<=0) return;
-  const btnWidth=Math.floor((availableWidth-6)/2); // 6px gap zwischen again und known
+  const heartsWidth=heartContainer.getBoundingClientRect().width;
+  if(heartsWidth<=0) return;
+  const btnWidth=Math.floor(heartsWidth/2);
   if(btnWidth<40) return;
   again.style.width=btnWidth+'px';
   known.style.width=btnWidth+'px';
