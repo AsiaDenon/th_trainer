@@ -906,12 +906,16 @@ function alignActionButtons(){
   known.style.width=listenWidth+'px';
   const heartContainer=$("#heartButtons"), edgeBtn=$("#edgeSpeakBtn");
   if(!heartContainer||heartContainer.children.length===0) return;
-  if(!edgeBtn||edgeBtn.offsetParent===null){
-    Array.from(heartContainer.children).forEach(btn=>{btn.style.width='';btn.style.minWidth='';btn.style.padding='7px 10px'});
-    return;
-  }
   const line1Total=listenWidth*3+16;
   Array.from(heartContainer.children).forEach(btn=>{btn.style.width='';btn.style.minWidth='';btn.style.padding='7px 10px'});
+  if(!edgeBtn||edgeBtn.offsetParent===null){
+    const heartsTotal=line1Total;
+    const n=heartContainer.children.length;
+    const heartBtnWidth=(heartsTotal-(n-1)*4)/n;
+    if(heartBtnWidth<20) return;
+    Array.from(heartContainer.children).forEach(btn=>{btn.style.width=heartBtnWidth+'px';btn.style.minWidth=heartBtnWidth+'px';btn.style.padding='0'});
+    return;
+  }
   const edgeBtnWidth=edgeBtn.getBoundingClientRect().width;
   const n=heartContainer.children.length;
   const heartsTotal=line1Total-8-edgeBtnWidth;
